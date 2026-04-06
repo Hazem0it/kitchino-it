@@ -30,6 +30,17 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 40px rgba(56, 189, 248, 0.1);
         }
+        /* شكل التحميل (Loader) */
+        .loader {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-left-color: #38bdf8;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
@@ -39,156 +50,203 @@
             <h1 class="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">
                 مركز عمليات الدعم الفني
             </h1>
-            <p class="text-slate-400 mt-2 text-sm md:text-base"><i class="fa-solid fa-satellite-dish text-green-400 animate-pulse ml-2"></i>مراقبة حية للأصول والشبكات</p>
+            <p class="text-slate-400 mt-2 text-sm md:text-base">
+                <i class="fa-solid fa-satellite-dish text-green-400 animate-pulse ml-2"></i>مزامنة حية للبيانات عبر الـ API المشفر
+            </p>
         </div>
         <div class="hidden md:flex items-center space-x-4 space-x-reverse">
-            <div class="bg-slate-800 p-3 rounded-full border border-slate-700">
+            <div class="bg-slate-800 p-3 rounded-full border border-slate-700 shadow-[0_0_15px_rgba(56,189,248,0.3)]">
                 <i class="fa-solid fa-user-shield text-cyan-400"></i>
             </div>
             <div class="text-right">
                 <p class="font-bold text-sm">System Admin</p>
-                <p class="text-xs text-slate-400">متصل الآن</p>
+                <p id="connection-status" class="text-xs text-yellow-400">جاري الاتصال بقاعدة البيانات...</p>
             </div>
         </div>
     </header>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <div class="glass-card p-6 border-t-4 border-t-red-500">
-            <div class="flex justify-between items-center">
+        <div class="glass-card p-6 border-t-4 border-t-red-500 relative overflow-hidden">
+            <div class="absolute -right-4 -top-4 opacity-10"><i class="fa-solid fa-ticket text-9xl"></i></div>
+            <div class="flex justify-between items-center relative z-10">
                 <h3 class="text-slate-300 font-semibold">التذاكر المفتوحة</h3>
                 <i class="fa-solid fa-ticket text-red-500 text-2xl"></i>
             </div>
-            <p class="text-4xl font-bold mt-4">12</p>
-            <p class="text-xs text-red-400 mt-2"><i class="fa-solid fa-arrow-up ml-1"></i> بزيادة 3 تذاكر اليوم</p>
+            <p id="kpi-open" class="text-4xl font-bold mt-4 relative z-10"><span class="loader"></span></p>
+            <p class="text-xs text-red-400 mt-2 relative z-10">تتطلب تدخل الدعم الفني</p>
         </div>
         
-        <div class="glass-card p-6 border-t-4 border-t-cyan-400">
-            <div class="flex justify-between items-center">
-                <h3 class="text-slate-300 font-semibold">إجمالي الأجهزة</h3>
-                <i class="fa-solid fa-laptop-code text-cyan-400 text-2xl"></i>
+        <div class="glass-card p-6 border-t-4 border-t-cyan-400 relative overflow-hidden">
+            <div class="absolute -right-4 -top-4 opacity-10"><i class="fa-solid fa-check-circle text-9xl"></i></div>
+            <div class="flex justify-between items-center relative z-10">
+                <h3 class="text-slate-300 font-semibold">التذاكر المغلقة</h3>
+                <i class="fa-solid fa-check-circle text-cyan-400 text-2xl"></i>
             </div>
-            <p class="text-4xl font-bold mt-4">145</p>
-            <p class="text-xs text-cyan-200 mt-2">عبر 6 فروع مختلفة</p>
+            <p id="kpi-closed" class="text-4xl font-bold mt-4 relative z-10"><span class="loader"></span></p>
+            <p class="text-xs text-cyan-200 mt-2 relative z-10">المهام المنجزة بنجاح</p>
         </div>
 
-        <div class="glass-card p-6 border-t-4 border-t-green-500">
-            <div class="flex justify-between items-center">
-                <h3 class="text-slate-300 font-semibold">حالة الشبكة (Avg)</h3>
-                <i class="fa-solid fa-wifi text-green-500 text-2xl"></i>
+        <div class="glass-card p-6 border-t-4 border-t-green-500 relative overflow-hidden">
+            <div class="absolute -right-4 -top-4 opacity-10"><i class="fa-solid fa-layer-group text-9xl"></i></div>
+            <div class="flex justify-between items-center relative z-10">
+                <h3 class="text-slate-300 font-semibold">إجمالي التذاكر المسجلة</h3>
+                <i class="fa-solid fa-layer-group text-green-500 text-2xl"></i>
             </div>
-            <p class="text-4xl font-bold mt-4">98 <span class="text-xl">db</span></p>
-            <p class="text-xs text-green-400 mt-2">إشارة ممتازة (المصنع - زايد)</p>
+            <p id="kpi-total" class="text-4xl font-bold mt-4 relative z-10"><span class="loader"></span></p>
+            <p class="text-xs text-green-400 mt-2 relative z-10">في السجل الكامل للمنظومة</p>
         </div>
 
-        <div class="glass-card p-6 border-t-4 border-t-purple-500">
-            <div class="flex justify-between items-center">
+        <div class="glass-card p-6 border-t-4 border-t-purple-500 relative overflow-hidden">
+            <div class="absolute -right-4 -top-4 opacity-10"><i class="fa-solid fa-bolt text-9xl"></i></div>
+            <div class="flex justify-between items-center relative z-10">
                 <h3 class="text-slate-300 font-semibold">معدل الإنجاز</h3>
-                <i class="fa-solid fa-check-double text-purple-500 text-2xl"></i>
+                <i class="fa-solid fa-bolt text-purple-500 text-2xl"></i>
             </div>
-            <p class="text-4xl font-bold mt-4">87%</p>
-            <p class="text-xs text-purple-300 mt-2">تم حل المشاكل خلال 24 ساعة</p>
+            <p id="kpi-rate" class="text-4xl font-bold mt-4 relative z-10"><span class="loader"></span></p>
+            <p class="text-xs text-purple-300 mt-2 relative z-10">نسبة كفاءة حل المشاكل</p>
         </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="glass-card p-6 lg:col-span-2">
-            <h2 class="text-xl font-bold mb-6 text-slate-200"><i class="fa-solid fa-chart-pie ml-2 text-cyan-500"></i>توزيع الأعطال والأجهزة حسب الفرع</h2>
-            <div class="relative h-72 w-full">
-                <canvas id="branchChart"></canvas>
+            <h2 class="text-xl font-bold mb-6 text-slate-200"><i class="fa-solid fa-chart-pie ml-2 text-cyan-500"></i>معدل أداء التذاكر والأعطال</h2>
+            <div class="relative h-72 w-full flex justify-center items-center" id="chart-container">
+                <span id="chart-loader" class="loader !w-12 !h-12 !border-4"></span>
+                <canvas id="branchChart" class="hidden"></canvas>
             </div>
         </div>
 
         <div class="glass-card p-6">
-            <h2 class="text-xl font-bold mb-6 text-slate-200"><i class="fa-solid fa-bolt ml-2 text-yellow-500"></i>تدخلات الدعم الفني النشطة</h2>
+            <h2 class="text-xl font-bold mb-6 text-slate-200"><i class="fa-solid fa-server ml-2 text-yellow-500"></i>حالة المنظومة</h2>
             <div class="space-y-4">
-                <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 hover:border-cyan-500 transition-colors">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="bg-red-500/20 text-red-400 text-xs px-2 py-1 rounded font-bold">عاجل جدًا</span>
-                        <span class="text-xs text-slate-400">منذ 10 دقائق</span>
-                    </div>
-                    <p class="font-semibold text-sm">عطل إقلاع ومراوح عالية - HP Prodesk</p>
-                    <p class="text-xs text-slate-400 mt-1"><i class="fa-solid fa-location-dot ml-1"></i>فرع زايد</p>
+                <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 border-r-4 border-r-green-500">
+                    <p class="font-semibold text-sm">اتصال الـ API</p>
+                    <p class="text-xs text-green-400 mt-1" id="api-status">في انتظار جلب البيانات...</p>
                 </div>
-
-                <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 hover:border-cyan-500 transition-colors">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="bg-yellow-500/20 text-yellow-400 text-xs px-2 py-1 rounded font-bold">صيانة دورية</span>
-                        <span class="text-xs text-slate-400">منذ ساعتين</span>
-                    </div>
-                    <p class="font-semibold text-sm">صيانة دورية - ماكينة Kyocera 5501</p>
-                    <p class="text-xs text-slate-400 mt-1"><i class="fa-solid fa-location-dot ml-1"></i>المصنع</p>
+                <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 border-r-4 border-r-cyan-500">
+                    <p class="font-semibold text-sm">تشفير البيانات</p>
+                    <p class="text-xs text-cyan-400 mt-1">نشط (Data is isolated in Backend)</p>
                 </div>
-
-                <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 hover:border-cyan-500 transition-colors">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded font-bold">قيد العمل</span>
-                        <span class="text-xs text-slate-400">منذ 4 ساعات</span>
-                    </div>
-                    <p class="font-semibold text-sm">إعداد طباعة استيكرات - Kyocera TASKalfa 4505ci</p>
-                    <p class="text-xs text-slate-400 mt-1"><i class="fa-solid fa-location-dot ml-1"></i>المقر الرئيسي</p>
+                <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 border-r-4 border-r-purple-500">
+                    <p class="font-semibold text-sm">تحديث الواجهة</p>
+                    <p class="text-xs text-purple-400 mt-1">تلقائي (Real-time DOM Update)</p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // كود تشغيل الرسم البياني لتوزيع الأعطال
-        const ctx = document.getElementById('branchChart').getContext('2d');
-        
-        // إعداد تدرج لوني للرسم البياني ليعطي طابعاً عالمياً
-        let gradientBlue = ctx.createLinearGradient(0, 0, 0, 400);
-        gradientBlue.addColorStop(0, 'rgba(56, 189, 248, 0.8)');   
-        gradientBlue.addColorStop(1, 'rgba(56, 189, 248, 0.1)');
+        // =========================================================
+        // 1. ضع رابط الـ Web App الخاص بـ Google Apps Script هنا
+        // =========================================================
+        const googleAppsScriptURL = 'https://script.google.com/macros/s/AKfycby8RD8ORF0Q7jh9xgDF645Uu9mEsvyqVausg4Rr_63obDAOCNNYROFeqWIxmQHBTm0Bzg/exec';
 
-        let gradientPurple = ctx.createLinearGradient(0, 0, 0, 400);
-        gradientPurple.addColorStop(0, 'rgba(168, 85, 247, 0.8)');   
-        gradientPurple.addColorStop(1, 'rgba(168, 85, 247, 0.1)');
+        let myChart = null; // متغير لحفظ الرسم البياني
 
-        const branchChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['المصنع', 'زايد', 'المقر', 'بارك', 'دون تاون', 'الترولي'],
-                datasets: [
-                    {
-                        label: 'أجهزة متصلة بالشبكة',
-                        data: [16, 10, 8, 5, 9, 10],
-                        backgroundColor: gradientBlue,
-                        borderColor: '#38bdf8',
+        // دالة سحب البيانات وتحليلها
+        async function fetchAndProcessData() {
+            try {
+                // جلب البيانات من الـ API
+                const response = await fetch(googleAppsScriptURL);
+                const data = await response.json();
+                
+                console.log("تم سحب البيانات من الـ API بنجاح:", data);
+                
+                // تغيير حالة الاتصال في الشريط العلوي
+                document.getElementById('connection-status').innerText = 'متصل بالبيانات الحية';
+                document.getElementById('connection-status').className = 'text-xs text-green-400';
+                document.getElementById('api-status').innerText = 'متصل بنجاح 🟢';
+
+                let openTickets = 0;
+                let closedTickets = 0;
+                let totalTickets = data.length; // إجمالي التذاكر بناءً على عدد الصفوف
+
+                // حساب التذاكر المفتوحة والمغلقة
+                data.forEach(row => {
+                    // الاعتماد على اسم العمود الفعلي في الشيت
+                    const status = row['الحالة (مفتوحة/قيد العمل/مغلقة)'];
+                    
+                    if(status === 'مفتوحة' || status === 'قيد العمل') {
+                        openTickets++;
+                    } else if (status === 'مغلق' || status === 'مغلقة') {
+                        closedTickets++;
+                    }
+                });
+
+                // حساب معدل الإنجاز
+                let completionRate = totalTickets > 0 ? Math.round((closedTickets / totalTickets) * 100) : 0;
+
+                // تحديث الأرقام في الداشبورد (إخفاء الـ Loader وإظهار الأرقام)
+                document.getElementById('kpi-open').innerText = openTickets;
+                document.getElementById('kpi-closed').innerText = closedTickets;
+                document.getElementById('kpi-total').innerText = totalTickets;
+                document.getElementById('kpi-rate').innerText = completionRate + '%';
+
+                // رسم الرسم البياني
+                drawChart(openTickets, closedTickets);
+                
+            } catch (error) {
+                console.error("حدث خطأ أثناء جلب البيانات:", error);
+                document.getElementById('connection-status').innerText = 'فشل الاتصال بالبيانات';
+                document.getElementById('connection-status').className = 'text-xs text-red-500';
+                document.getElementById('api-status').innerText = 'فشل الاتصال 🔴';
+            }
+        }
+
+        // دالة رسم الشارت
+        function drawChart(open, closed) {
+            // إخفاء اللودر وإظهار الكانفاس
+            document.getElementById('chart-loader').style.display = 'none';
+            const canvas = document.getElementById('branchChart');
+            canvas.classList.remove('hidden');
+
+            const ctx = canvas.getContext('2d');
+            
+            // إذا كان هناك رسم بياني سابق، قم بتدميره لتجنب التداخل
+            if(myChart) {
+                myChart.destroy();
+            }
+            
+            // ألوان النيون العصرية
+            let gradientRed = ctx.createLinearGradient(0, 0, 0, 400);
+            gradientRed.addColorStop(0, 'rgba(239, 68, 68, 0.8)');   
+            gradientRed.addColorStop(1, 'rgba(239, 68, 68, 0.1)');
+
+            let gradientCyan = ctx.createLinearGradient(0, 0, 0, 400);
+            gradientCyan.addColorStop(0, 'rgba(34, 211, 238, 0.8)');   
+            gradientCyan.addColorStop(1, 'rgba(34, 211, 238, 0.1)');
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['التذاكر المفتوحة (قيد العمل)', 'التذاكر المغلقة (تم الحل)'],
+                    datasets: [{
+                        label: 'إحصائيات تذاكر الدعم الفني',
+                        data: [open, closed],
+                        backgroundColor: [gradientRed, gradientCyan],
+                        borderColor: ['#ef4444', '#22d3ee'],
                         borderWidth: 2,
                         borderRadius: 8,
-                    },
-                    {
-                        label: 'تذاكر أعطال الشهر',
-                        data: [5, 2, 1, 0, 3, 2],
-                        backgroundColor: gradientPurple,
-                        borderColor: '#a855f7',
-                        borderWidth: 2,
-                        borderRadius: 8,
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                color: '#94a3b8',
-                plugins: {
-                    legend: {
-                        labels: { color: '#f8fafc', font: { family: 'Cairo', size: 14 } }
-                    }
+                        barThickness: 60
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#94a3b8' }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    color: '#94a3b8',
+                    plugins: {
+                        legend: { labels: { color: '#f8fafc', font: { family: 'Cairo', size: 14 } } }
                     },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#94a3b8', font: { family: 'Cairo' } }
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', stepSize: 1 } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { family: 'Cairo', size: 14 } } }
                     }
                 }
-            }
-        });
+            });
+        }
+
+        // تشغيل العملية فور تحميل الصفحة
+        fetchAndProcessData();
     </script>
 </body>
 </html>
