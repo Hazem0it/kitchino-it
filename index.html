@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة تحكم عمليات الـ IT | Kitchino</title>
+    <title>نظام إدارة الأصول التقنية | ITAM</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
@@ -15,238 +14,333 @@
             background-color: #0f172a;
             background-image: radial-gradient(circle at 50% -20%, #1e293b, #0f172a);
             color: #f8fafc;
+            overflow-x: hidden;
         }
-        /* تصميم الزجاج الشفاف الاحترافي */
+        /* تصميم الزجاج الشفاف */
         .glass-card {
-            background: rgba(30, 41, 59, 0.4);
+            background: rgba(30, 41, 59, 0.6);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-            border-radius: 1.25rem;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 1rem;
         }
-        .glass-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 40px rgba(56, 189, 248, 0.1);
-        }
-        /* شكل التحميل (Loader) */
+        /* تصميم الجدول */
+        th { background-color: rgba(15, 23, 42, 0.8); }
+        tr { transition: all 0.2s ease; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        tr:hover { background-color: rgba(56, 189, 248, 0.05); }
+        
+        /* الانيميشن */
         .loader {
-            border: 4px solid rgba(255,255,255,0.1);
+            border: 3px solid rgba(255,255,255,0.1);
             border-left-color: #38bdf8;
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             animation: spin 1s linear infinite;
             display: inline-block;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* تخصيص السكرول بار */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
     </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
 
-    <header class="flex justify-between items-center mb-10">
+    <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-300 opacity-0 pointer-events-none flex items-center gap-3">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toast-msg">تمت العملية بنجاح</span>
+    </div>
+
+    <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div>
-            <h1 class="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">
-                مركز عمليات الدعم الفني
+            <h1 class="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">
+                إدارة الأصول والعُهد التقنية
             </h1>
-            <p class="text-slate-400 mt-2 text-sm md:text-base">
-                <i class="fa-solid fa-satellite-dish text-green-400 animate-pulse ml-2"></i>مزامنة حية للبيانات عبر الـ API المشفر
-            </p>
+            <p class="text-slate-400 mt-2 text-sm"><i class="fa-solid fa-network-wired text-cyan-500 mr-2"></i>نظام تحكم مباشر بقواعد البيانات</p>
         </div>
-        <div class="hidden md:flex items-center space-x-4 space-x-reverse">
-            <div class="bg-slate-800 p-3 rounded-full border border-slate-700 shadow-[0_0_15px_rgba(56,189,248,0.3)]">
-                <i class="fa-solid fa-user-shield text-cyan-400"></i>
-            </div>
+        <div class="flex items-center gap-4 bg-slate-800/80 px-6 py-3 rounded-full border border-slate-700">
             <div class="text-right">
-                <p class="font-bold text-sm">System Admin</p>
-                <p id="connection-status" class="text-xs text-yellow-400">جاري الاتصال بقاعدة البيانات...</p>
+                <p class="font-bold text-sm text-cyan-400">م. حازم</p>
+                <p class="text-xs text-slate-400">IT Administrator</p>
+            </div>
+            <div class="bg-cyan-500/20 p-2 rounded-full">
+                <i class="fa-solid fa-user-tie text-cyan-400"></i>
             </div>
         </div>
     </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <div class="glass-card p-6 border-t-4 border-t-red-500 relative overflow-hidden">
-            <div class="absolute -right-4 -top-4 opacity-10"><i class="fa-solid fa-ticket text-9xl"></i></div>
-            <div class="flex justify-between items-center relative z-10">
-                <h3 class="text-slate-300 font-semibold">التذاكر المفتوحة</h3>
-                <i class="fa-solid fa-ticket text-red-500 text-2xl"></i>
+    <div class="glass-card p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="w-full md:w-1/3">
+            <label class="block text-sm font-semibold text-slate-300 mb-2">اختر الفرع (Branch)</label>
+            <div class="relative">
+                <select id="branch-select" class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-3 appearance-none focus:outline-none focus:border-cyan-500 transition-colors cursor-pointer" onchange="loadBranchData()">
+                    <option value="kitchino">فرع Kitchino</option>
+                    <option value="milark">فرع Milark</option>
+                    <option value="فرع زايد">فرع زايد</option>
+                    <option value="caventa">فرع Caventa</option>
+                    </select>
+                <i class="fa-solid fa-chevron-down absolute left-4 top-4 text-slate-400 pointer-events-none"></i>
             </div>
-            <p id="kpi-open" class="text-4xl font-bold mt-4 relative z-10"><span class="loader"></span></p>
-            <p class="text-xs text-red-400 mt-2 relative z-10">تتطلب تدخل الدعم الفني</p>
-        </div>
-        
-        <div class="glass-card p-6 border-t-4 border-t-cyan-400 relative overflow-hidden">
-            <div class="absolute -right-4 -top-4 opacity-10"><i class="fa-solid fa-check-circle text-9xl"></i></div>
-            <div class="flex justify-between items-center relative z-10">
-                <h3 class="text-slate-300 font-semibold">التذاكر المغلقة</h3>
-                <i class="fa-solid fa-check-circle text-cyan-400 text-2xl"></i>
-            </div>
-            <p id="kpi-closed" class="text-4xl font-bold mt-4 relative z-10"><span class="loader"></span></p>
-            <p class="text-xs text-cyan-200 mt-2 relative z-10">المهام المنجزة بنجاح</p>
         </div>
 
-        <div class="glass-card p-6 border-t-4 border-t-green-500 relative overflow-hidden">
-            <div class="absolute -right-4 -top-4 opacity-10"><i class="fa-solid fa-layer-group text-9xl"></i></div>
-            <div class="flex justify-between items-center relative z-10">
-                <h3 class="text-slate-300 font-semibold">إجمالي التذاكر المسجلة</h3>
-                <i class="fa-solid fa-layer-group text-green-500 text-2xl"></i>
+        <div class="flex gap-4 items-center">
+            <div id="status-indicator" class="text-sm px-4 py-2 rounded-lg bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 flex items-center gap-2">
+                <span class="loader !w-4 !h-4 !border-[2px]"></span> جاري التحميل...
             </div>
-            <p id="kpi-total" class="text-4xl font-bold mt-4 relative z-10"><span class="loader"></span></p>
-            <p class="text-xs text-green-400 mt-2 relative z-10">في السجل الكامل للمنظومة</p>
-        </div>
-
-        <div class="glass-card p-6 border-t-4 border-t-purple-500 relative overflow-hidden">
-            <div class="absolute -right-4 -top-4 opacity-10"><i class="fa-solid fa-bolt text-9xl"></i></div>
-            <div class="flex justify-between items-center relative z-10">
-                <h3 class="text-slate-300 font-semibold">معدل الإنجاز</h3>
-                <i class="fa-solid fa-bolt text-purple-500 text-2xl"></i>
-            </div>
-            <p id="kpi-rate" class="text-4xl font-bold mt-4 relative z-10"><span class="loader"></span></p>
-            <p class="text-xs text-purple-300 mt-2 relative z-10">نسبة كفاءة حل المشاكل</p>
+            <button onclick="loadBranchData()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg transition-colors border border-slate-600 flex items-center gap-2">
+                <i class="fa-solid fa-rotate-right"></i> تحديث
+            </button>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="glass-card p-6 lg:col-span-2">
-            <h2 class="text-xl font-bold mb-6 text-slate-200"><i class="fa-solid fa-chart-pie ml-2 text-cyan-500"></i>معدل أداء التذاكر والأعطال</h2>
-            <div class="relative h-72 w-full flex justify-center items-center" id="chart-container">
-                <span id="chart-loader" class="loader !w-12 !h-12 !border-4"></span>
-                <canvas id="branchChart" class="hidden"></canvas>
-            </div>
+    <div class="glass-card overflow-hidden">
+        <div class="overflow-x-auto max-h-[600px]">
+            <table class="w-full text-left border-collapse" dir="rtl">
+                <thead class="sticky top-0 z-10 shadow-md">
+                    <tr>
+                        <th class="px-6 py-4 font-semibold text-slate-300">م</th>
+                        <th class="px-6 py-4 font-semibold text-slate-300">اسم الموظف</th>
+                        <th class="px-6 py-4 font-semibold text-slate-300">سيريال الجهاز (Board Serial)</th>
+                        <th class="px-6 py-4 font-semibold text-slate-300">الموديل / المواصفات</th>
+                        <th class="px-6 py-4 font-semibold text-slate-300 text-center">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body" class="text-sm text-slate-400">
+                    </tbody>
+            </table>
         </div>
+        
+        <div id="empty-state" class="hidden text-center py-12">
+            <i class="fa-solid fa-box-open text-4xl text-slate-600 mb-4"></i>
+            <p class="text-slate-400">لا توجد أجهزة مسجلة في هذا الفرع أو جاري التحميل.</p>
+        </div>
+    </div>
 
-        <div class="glass-card p-6">
-            <h2 class="text-xl font-bold mb-6 text-slate-200"><i class="fa-solid fa-server ml-2 text-yellow-500"></i>حالة المنظومة</h2>
+    <div id="edit-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-900 border border-slate-700 p-8 rounded-2xl w-full max-w-md shadow-2xl transform scale-95 transition-transform duration-300" id="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white"><i class="fa-solid fa-pen-to-square text-cyan-500 ml-2"></i>تعديل عهدة الجهاز</h2>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-red-400 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
             <div class="space-y-4">
-                <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 border-r-4 border-r-green-500">
-                    <p class="font-semibold text-sm">اتصال الـ API</p>
-                    <p class="text-xs text-green-400 mt-1" id="api-status">في انتظار جلب البيانات...</p>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">سيريال الجهاز المستهدف</label>
+                    <input type="text" id="edit-serial" disabled class="w-full bg-slate-800/50 border border-slate-700 text-slate-500 rounded-lg px-4 py-2 cursor-not-allowed">
                 </div>
-                <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 border-r-4 border-r-cyan-500">
-                    <p class="font-semibold text-sm">تشفير البيانات</p>
-                    <p class="text-xs text-cyan-400 mt-1">نشط (Data is isolated in Backend)</p>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-slate-300 mb-2">اسم الموظف الجديد المستلم</label>
+                    <input type="text" id="edit-employee" placeholder="أدخل اسم الموظف..." class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition-colors">
                 </div>
-                <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 border-r-4 border-r-purple-500">
-                    <p class="font-semibold text-sm">تحديث الواجهة</p>
-                    <p class="text-xs text-purple-400 mt-1">تلقائي (Real-time DOM Update)</p>
-                </div>
+            </div>
+
+            <div class="mt-8 flex gap-3">
+                <button id="save-btn" onclick="saveChanges()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i> حفظ التعديل
+                </button>
+                <button onclick="closeModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+                    إلغاء
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        // =========================================================
-        // 1. ضع رابط الـ Web App الخاص بـ Google Apps Script هنا
-        // =========================================================
-        const googleAppsScriptURL = 'https://script.google.com/macros/s/AKfycby8RD8ORF0Q7jh9xgDF645Uu9mEsvyqVausg4Rr_63obDAOCNNYROFeqWIxmQHBTm0Bzg/exec';
+        // رابط الـ API الخاص بك
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzq3tV59osnLkLlxidTJd_IKqwt6Z0YuF8CBdabHGqybPeYvPxsRsIq8kpxk0Td-N4UqA/exec';
+        
+        let currentData = [];
 
-        let myChart = null; // متغير لحفظ الرسم البياني
+        // دالة إظهار الإشعارات
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-msg');
+            const icon = toast.querySelector('i');
+            
+            msgEl.innerText = message;
+            if (isError) {
+                toast.classList.replace('bg-green-500', 'bg-red-500');
+                icon.className = 'fa-solid fa-circle-exclamation';
+            } else {
+                toast.classList.replace('bg-red-500', 'bg-green-500');
+                icon.className = 'fa-solid fa-circle-check';
+            }
+            
+            toast.classList.remove('opacity-0');
+            setTimeout(() => toast.classList.add('opacity-0'), 4000);
+        }
 
-        // دالة سحب البيانات وتحليلها
-        async function fetchAndProcessData() {
+        // دالة تغيير حالة مؤشر التحميل
+        function setStatus(status) {
+            const indicator = document.getElementById('status-indicator');
+            if(status === 'loading') {
+                indicator.className = 'text-sm px-4 py-2 rounded-lg bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 flex items-center gap-2';
+                indicator.innerHTML = '<span class="loader !w-4 !h-4 !border-[2px]"></span> جاري التحميل...';
+            } else if (status === 'success') {
+                indicator.className = 'text-sm px-4 py-2 rounded-lg bg-green-500/10 text-green-500 border border-green-500/20 flex items-center gap-2';
+                indicator.innerHTML = '<i class="fa-solid fa-check"></i> متصل';
+            } else {
+                indicator.className = 'text-sm px-4 py-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 flex items-center gap-2';
+                indicator.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> خطأ بالاتصال';
+            }
+        }
+
+        // دالة جلب بيانات الفرع
+        async function loadBranchData() {
+            setStatus('loading');
+            const branch = document.getElementById('branch-select').value;
+            const tbody = document.getElementById('table-body');
+            const emptyState = document.getElementById('empty-state');
+            
+            tbody.innerHTML = '';
+            emptyState.classList.add('hidden');
+
             try {
-                // جلب البيانات من الـ API
-                const response = await fetch(googleAppsScriptURL);
+                // جلب البيانات مع إرسال اسم الفرع في الرابط
+                const response = await fetch(`${API_URL}?sheet=${encodeURIComponent(branch)}`);
                 const data = await response.json();
                 
-                console.log("تم سحب البيانات من الـ API بنجاح:", data);
+                if(data.error) throw new Error(data.error);
                 
-                // تغيير حالة الاتصال في الشريط العلوي
-                document.getElementById('connection-status').innerText = 'متصل بالبيانات الحية';
-                document.getElementById('connection-status').className = 'text-xs text-green-400';
-                document.getElementById('api-status').innerText = 'متصل بنجاح 🟢';
-
-                let openTickets = 0;
-                let closedTickets = 0;
-                let totalTickets = data.length; // إجمالي التذاكر بناءً على عدد الصفوف
-
-                // حساب التذاكر المفتوحة والمغلقة
-                data.forEach(row => {
-                    // الاعتماد على اسم العمود الفعلي في الشيت
-                    const status = row['الحالة (مفتوحة/قيد العمل/مغلقة)'];
-                    
-                    if(status === 'مفتوحة' || status === 'قيد العمل') {
-                        openTickets++;
-                    } else if (status === 'مغلق' || status === 'مغلقة') {
-                        closedTickets++;
-                    }
-                });
-
-                // حساب معدل الإنجاز
-                let completionRate = totalTickets > 0 ? Math.round((closedTickets / totalTickets) * 100) : 0;
-
-                // تحديث الأرقام في الداشبورد (إخفاء الـ Loader وإظهار الأرقام)
-                document.getElementById('kpi-open').innerText = openTickets;
-                document.getElementById('kpi-closed').innerText = closedTickets;
-                document.getElementById('kpi-total').innerText = totalTickets;
-                document.getElementById('kpi-rate').innerText = completionRate + '%';
-
-                // رسم الرسم البياني
-                drawChart(openTickets, closedTickets);
+                currentData = data;
                 
-            } catch (error) {
-                console.error("حدث خطأ أثناء جلب البيانات:", error);
-                document.getElementById('connection-status').innerText = 'فشل الاتصال بالبيانات';
-                document.getElementById('connection-status').className = 'text-xs text-red-500';
-                document.getElementById('api-status').innerText = 'فشل الاتصال 🔴';
-            }
-        }
-
-        // دالة رسم الشارت
-        function drawChart(open, closed) {
-            // إخفاء اللودر وإظهار الكانفاس
-            document.getElementById('chart-loader').style.display = 'none';
-            const canvas = document.getElementById('branchChart');
-            canvas.classList.remove('hidden');
-
-            const ctx = canvas.getContext('2d');
-            
-            // إذا كان هناك رسم بياني سابق، قم بتدميره لتجنب التداخل
-            if(myChart) {
-                myChart.destroy();
-            }
-            
-            // ألوان النيون العصرية
-            let gradientRed = ctx.createLinearGradient(0, 0, 0, 400);
-            gradientRed.addColorStop(0, 'rgba(239, 68, 68, 0.8)');   
-            gradientRed.addColorStop(1, 'rgba(239, 68, 68, 0.1)');
-
-            let gradientCyan = ctx.createLinearGradient(0, 0, 0, 400);
-            gradientCyan.addColorStop(0, 'rgba(34, 211, 238, 0.8)');   
-            gradientCyan.addColorStop(1, 'rgba(34, 211, 238, 0.1)');
-
-            myChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['التذاكر المفتوحة (قيد العمل)', 'التذاكر المغلقة (تم الحل)'],
-                    datasets: [{
-                        label: 'إحصائيات تذاكر الدعم الفني',
-                        data: [open, closed],
-                        backgroundColor: [gradientRed, gradientCyan],
-                        borderColor: ['#ef4444', '#22d3ee'],
-                        borderWidth: 2,
-                        borderRadius: 8,
-                        barThickness: 60
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    color: '#94a3b8',
-                    plugins: {
-                        legend: { labels: { color: '#f8fafc', font: { family: 'Cairo', size: 14 } } }
-                    },
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', stepSize: 1 } },
-                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { family: 'Cairo', size: 14 } } }
-                    }
+                if(data.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    setStatus('success');
+                    return;
                 }
-            });
+
+                // رسم الجدول
+                let html = '';
+                data.forEach((row, index) => {
+                    // الاعتماد على المسميات الموجودة في ملفاتك
+                    const empName = row['اسم الموظف'] || row['User Name'] || '<span class="text-slate-600">غير مسجل</span>';
+                    const serial = row['Board Serial Number'] || row['سيريال لاب توب'] || '';
+                    const model = row['Model'] || row['مواصفات الجهاز'] || row['Hardware'] || '';
+                    
+                    // تجاهل الصفوف الفارغة تماماً
+                    if(!serial && empName === '<span class="text-slate-600">غير مسجل</span>') return;
+
+                    html += `
+                        <tr>
+                            <td class="px-6 py-4">${index + 1}</td>
+                            <td class="px-6 py-4 font-semibold text-slate-200">
+                                <i class="fa-solid fa-user text-slate-500 ml-2 text-xs"></i>${empName}
+                            </td>
+                            <td class="px-6 py-4 font-mono text-cyan-400">${serial || 'غير متوفر'}</td>
+                            <td class="px-6 py-4 text-xs text-slate-400 max-w-xs truncate" title="${model}">${model}</td>
+                            <td class="px-6 py-4 text-center">
+                                ${serial ? `
+                                <button onclick="openModal('${serial}', '${row['اسم الموظف'] || ''}')" class="bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-4 py-2 rounded-lg text-xs transition-colors">
+                                    <i class="fa-solid fa-pen mr-1"></i> تعديل
+                                </button>
+                                ` : '<span class="text-xs text-slate-600">بدون سيريال</span>'}
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                tbody.innerHTML = html;
+                if(tbody.innerHTML === '') emptyState.classList.remove('hidden');
+                
+                setStatus('success');
+            } catch (error) {
+                console.error(error);
+                setStatus('error');
+                showToast("حدث خطأ في جلب البيانات: " + error.message, true);
+            }
         }
 
-        // تشغيل العملية فور تحميل الصفحة
-        fetchAndProcessData();
+        // --- دوال النافذة المنبثقة (Modal) --- //
+        
+        const modal = document.getElementById('edit-modal');
+        const modalContent = document.getElementById('modal-content');
+        
+        function openModal(serial, currentEmp) {
+            document.getElementById('edit-serial').value = serial;
+            document.getElementById('edit-employee').value = currentEmp !== 'undefined' ? currentEmp : '';
+            
+            modal.classList.remove('hidden');
+            // تأخير بسيط للانيميشن
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // دالة حفظ التعديلات وإرسالها لجوجل شيتس
+        async function saveChanges() {
+            const serial = document.getElementById('edit-serial').value;
+            const newEmployee = document.getElementById('edit-employee').value;
+            const branch = document.getElementById('branch-select').value;
+            const btn = document.getElementById('save-btn');
+            
+            if(!newEmployee.trim()) {
+                showToast("الرجاء إدخال اسم الموظف", true);
+                return;
+            }
+
+            // تغيير شكل الزر لوضع التحميل
+            const originalBtnContent = btn.innerHTML;
+            btn.innerHTML = '<span class="loader !w-5 !h-5 !border-[2px]"></span> جاري الحفظ...';
+            btn.disabled = true;
+            btn.classList.add('opacity-70');
+
+            // تجهيز البيانات للإرسال (Payload)
+            const payload = {
+                action: "update_asset",
+                branch: branch,
+                serial: serial,
+                employee: newEmployee,
+                admin: "حازم (IT Admin)" // اسمك كمنفذ للعملية ليتم تسجيله في اللوج
+            };
+
+            try {
+                // إرسال POST Request إلى الـ API
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload),
+                    // نستخدم text/plain لتجنب مشاكل CORS مع Google Apps Script
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+                
+                const result = await response.json();
+                
+                if(result.success) {
+                    showToast(result.message || "تم تحديث العهدة بنجاح");
+                    closeModal();
+                    // إعادة تحميل الجدول ليظهر التعديل الجديد
+                    loadBranchData();
+                } else {
+                    showToast(result.message || "فشل التحديث", true);
+                }
+            } catch (error) {
+                console.error(error);
+                showToast("حدث خطأ في الاتصال بالخادم", true);
+            } finally {
+                // إعادة الزر لشكله الطبيعي
+                btn.innerHTML = originalBtnContent;
+                btn.disabled = false;
+                btn.classList.remove('opacity-70');
+            }
+        }
+
+        // تحميل البيانات تلقائياً عند فتح الصفحة
+        window.onload = loadBranchData;
     </script>
 </body>
 </html>
