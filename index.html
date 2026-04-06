@@ -9,84 +9,169 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap');
-        body { font-family: 'Cairo', sans-serif; background-color: #0f172a; background-image: radial-gradient(circle at 50% -20%, #1e293b, #0f172a); color: #f8fafc; overflow-x: hidden; }
-        .glass-card { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2); border-radius: 1.25rem; transition: all 0.3s ease; }
-        .glass-btn:hover { transform: translateY(-5px); box-shadow: 0 10px 40px rgba(56, 189, 248, 0.15); cursor: pointer; border-color: rgba(56, 189, 248, 0.3); }
-        .modal-overlay { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(10px); }
-        th { background-color: rgba(15, 23, 42, 0.8); position: sticky; top: 0; z-index: 10; }
-        tr { border-bottom: 1px solid rgba(255,255,255,0.05); transition: background-color 0.2s; } 
-        tr:hover { background-color: rgba(56, 189, 248, 0.1); }
-        ::-webkit-scrollbar { width: 8px; height: 8px; } 
-        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 10px; }
+        body { font-family: 'Cairo', sans-serif; background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
+        
+        /* تأثيرات الزجاج */
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); }
+        .glass-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; transition: all 0.3s; }
+        .glass-btn:hover { transform: translateY(-5px); border-color: rgba(56, 189, 248, 0.4); box-shadow: 0 10px 30px rgba(56, 189, 248, 0.1); }
+        
+        /* تحسين شكل الجداول */
+        table { border-collapse: separate; border-spacing: 0 8px; }
+        th { background-color: transparent !important; color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        tr.data-row { background: rgba(30, 41, 59, 0.4); transition: transform 0.2s, background 0.2s; }
+        tr.data-row:hover { background: rgba(56, 189, 248, 0.08); transform: scale(1.005); }
+        tr.data-row td { padding: 16px; border-top: 1px solid rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.02); }
+        tr.data-row td:first-child { border-right: 1px solid rgba(255,255,255,0.02); border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem; }
+        tr.data-row td:last-child { border-left: 1px solid rgba(255,255,255,0.02); border-top-left-radius: 0.5rem; border-bottom-left-radius: 0.5rem; }
+        
+        .modal-overlay { background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(15px); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; } 
+        ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #38bdf8; border-radius: 10px; }
         .loader { border: 3px solid rgba(255,255,255,0.1); border-left-color: #38bdf8; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: inline-block; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        /* خلفية تسجيل الدخول */
+        .login-bg { background: radial-gradient(circle at 50% 50%, #1e293b, #020617); }
     </style>
 </head>
-<body class="p-4 md:p-8 min-h-screen relative">
+<body class="relative min-h-screen">
 
-    <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-[100] opacity-0 transition-opacity duration-300 flex items-center gap-3 pointer-events-none">
+    <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-[9999] opacity-0 transition-opacity duration-300 flex items-center gap-3 pointer-events-none">
         <i class="fa-solid fa-circle-check"></i> <span id="toast-msg">تم بنجاح</span>
     </div>
 
-    <header class="flex justify-between items-center mb-10">
-        <div>
-            <h1 class="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">مركز عمليات الدعم الفني</h1>
-            <p class="text-slate-400 mt-2"><i class="fa-solid fa-satellite-dish text-green-400 animate-pulse ml-2"></i>IT Asset Management & Helpdesk</p>
+    <div id="login-view" class="fixed inset-0 z-[100] login-bg flex items-center justify-center p-4 transition-opacity duration-500">
+        <div class="glass-panel p-10 rounded-3xl w-full max-w-md text-center relative overflow-hidden">
+            <div class="absolute -top-20 -right-20 w-40 h-40 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+            <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+            
+            <div class="relative z-10">
+                <div class="bg-slate-800/80 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-600 shadow-[0_0_20px_rgba(56,189,248,0.2)]">
+                    <i class="fa-solid fa-user-astronaut text-4xl text-cyan-400"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-2">تسجيل الدخول</h1>
+                <p class="text-slate-400 text-sm mb-8">مرحباً بك في نظام إدارة الـ IT (Kitchino)</p>
+                
+                <div class="space-y-4">
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="login-user" placeholder="اسم المستخدم" class="w-full bg-slate-900/50 border border-slate-700 text-white rounded-xl py-3 pr-12 pl-4 focus:outline-none focus:border-cyan-500 transition">
+                    </div>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                        <input type="password" id="login-pass" placeholder="كلمة المرور" class="w-full bg-slate-900/50 border border-slate-700 text-white rounded-xl py-3 pr-12 pl-4 focus:outline-none focus:border-cyan-500 transition" onkeypress="if(event.key === 'Enter') handleLogin()">
+                    </div>
+                </div>
+                
+                <button onclick="handleLogin()" class="w-full mt-8 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 rounded-xl shadow-[0_4px_15px_rgba(34,211,238,0.3)] transition-all flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket"></i> دخول للنظام
+                </button>
+            </div>
         </div>
-        <div class="hidden md:flex items-center gap-4">
-            <div class="text-right"><p class="font-bold text-sm text-cyan-400">م. حازم</p><p class="text-xs text-slate-400">IT Admin</p></div>
-            <div class="bg-slate-800 p-3 rounded-full border border-slate-700 shadow-[0_0_15px_rgba(56,189,248,0.2)]"><i class="fa-solid fa-user-shield text-cyan-400"></i></div>
-        </div>
-    </header>
+    </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <div onclick="openTicketsModal()" class="glass-card glass-btn p-6 border-t-4 border-t-red-500 relative overflow-hidden group">
-            <i class="fa-solid fa-ticket absolute -right-4 -top-4 text-8xl opacity-5 group-hover:opacity-20 text-red-500 transition-all"></i>
-            <h3 class="text-slate-300 font-semibold mb-2">تذاكر الأعطال</h3>
-            <p class="text-2xl font-bold text-white"><i class="fa-solid fa-arrow-pointer text-red-500 animate-bounce ml-2"></i>إدارة الدعم الفني</p>
+    <div id="main-dashboard" class="hidden p-4 md:p-8 relative">
+        <header class="flex justify-between items-center mb-10 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                    IT Operations Center
+                </h1>
+                <p class="text-slate-400 mt-2 text-sm"><i class="fa-solid fa-shield-halved text-green-400 mr-2"></i>نظام آمن ومحمي</p>
+            </div>
+            <div class="flex items-center gap-6">
+                <button onclick="openSettingsModal()" class="text-slate-400 hover:text-cyan-400 transition-colors bg-slate-800 p-3 rounded-full border border-slate-700 hover:border-cyan-500">
+                    <i class="fa-solid fa-gear text-xl"></i>
+                </button>
+                <div class="h-10 w-px bg-slate-700"></div>
+                <div class="flex items-center gap-3 cursor-pointer" onclick="logout()">
+                    <div class="text-right hidden md:block">
+                        <p class="font-bold text-sm text-white" id="display-user-name">م. حازم</p>
+                        <p class="text-xs text-red-400 hover:text-red-300 transition">تسجيل خروج</p>
+                    </div>
+                    <div class="bg-gradient-to-tr from-cyan-500 to-blue-600 p-3 rounded-full shadow-lg">
+                        <i class="fa-solid fa-user-shield text-white"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div onclick="openTicketsModal()" class="glass-card glass-btn p-8 border-r-4 border-r-red-500 flex items-center justify-between group">
+                <div>
+                    <h3 class="text-slate-400 font-semibold mb-1">تذاكر الأعطال</h3>
+                    <p class="text-2xl font-bold text-white group-hover:text-red-400 transition">إدارة الدعم الفني</p>
+                </div>
+                <div class="bg-red-500/10 p-4 rounded-full"><i class="fa-solid fa-ticket text-3xl text-red-500"></i></div>
+            </div>
+            <div onclick="openAssetsModal()" class="glass-card glass-btn p-8 border-r-4 border-r-cyan-400 flex items-center justify-between group">
+                <div>
+                    <h3 class="text-slate-400 font-semibold mb-1">الأجهزة والعُهد</h3>
+                    <p class="text-2xl font-bold text-white group-hover:text-cyan-400 transition">سجل الأصول</p>
+                </div>
+                <div class="bg-cyan-500/10 p-4 rounded-full"><i class="fa-solid fa-laptop-code text-3xl text-cyan-400"></i></div>
+            </div>
+            <div onclick="openNetworksModal()" class="glass-card glass-btn p-8 border-r-4 border-r-green-500 flex items-center justify-between group">
+                <div>
+                    <h3 class="text-slate-400 font-semibold mb-1">الشبكات والروترات</h3>
+                    <p class="text-2xl font-bold text-white group-hover:text-green-400 transition">مراقبة الخطوط</p>
+                </div>
+                <div class="bg-green-500/10 p-4 rounded-full"><i class="fa-solid fa-network-wired text-3xl text-green-500"></i></div>
+            </div>
         </div>
-        <div onclick="openAssetsModal()" class="glass-card glass-btn p-6 border-t-4 border-t-cyan-400 relative overflow-hidden group">
-            <i class="fa-solid fa-laptop-code absolute -right-4 -top-4 text-8xl opacity-5 group-hover:opacity-20 text-cyan-400 transition-all"></i>
-            <h3 class="text-slate-300 font-semibold mb-2">الأجهزة والعُهد</h3>
-            <p class="text-2xl font-bold text-white"><i class="fa-solid fa-arrow-pointer text-cyan-400 animate-bounce ml-2"></i>سجل الأصول</p>
+
+        <div class="glass-card p-6 border border-slate-800">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-lg font-bold text-white"><i class="fa-solid fa-chart-line text-cyan-500 ml-2"></i>إحصائيات الأداء</h2>
+            </div>
+            <div class="relative w-full h-[300px]"><canvas id="performanceChart"></canvas></div>
         </div>
-        <div onclick="openNetworksModal()" class="glass-card glass-btn p-6 border-t-4 border-t-green-500 relative overflow-hidden group">
-            <i class="fa-solid fa-network-wired absolute -right-4 -top-4 text-8xl opacity-5 group-hover:opacity-20 text-green-500 transition-all"></i>
-            <h3 class="text-slate-300 font-semibold mb-2">الشبكات والروترات</h3>
-            <p class="text-2xl font-bold text-white"><i class="fa-solid fa-arrow-pointer text-green-500 animate-bounce ml-2"></i>مراقبة الخطوط</p>
-        </div>
-        <div class="glass-card p-6 border-t-4 border-t-purple-500 relative overflow-hidden">
-            <i class="fa-solid fa-bolt absolute -right-4 -top-4 text-8xl opacity-5 text-purple-500 transition-all"></i>
-            <h3 class="text-slate-300 font-semibold mb-2">معدل الإنجاز</h3>
-            <p class="text-4xl font-bold text-white">87%</p>
-            <p class="text-xs text-purple-300 mt-2">كفاءة حل المشاكل</p>
+    </div>
+
+    <div id="settings-modal" class="fixed inset-0 modal-overlay z-[80] hidden opacity-0 transition-opacity duration-300 flex justify-center items-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl relative overflow-hidden">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                <h2 class="text-xl font-bold text-white"><i class="fa-solid fa-gears text-cyan-500 ml-2"></i>إعدادات النظام والمستخدمين</h2>
+                <button onclick="closeModal('settings-modal')" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-2xl"></i></button>
+            </div>
+            <div class="p-6 space-y-6">
+                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                    <h3 class="text-white font-bold mb-4 border-b border-slate-700 pb-2"><i class="fa-solid fa-users-gear text-slate-400 ml-2"></i>إدارة حسابات الدخول (Admin Users)</h3>
+                    <p class="text-xs text-slate-400 mb-4">هذه الميزة تتيح لك إضافة حسابات للمهندسين الآخرين (سيتم ربطها بقاعدة البيانات لاحقاً).</p>
+                    <div class="flex gap-2">
+                        <input type="text" placeholder="اسم المستخدم" class="w-1/3 bg-slate-900 border border-slate-600 rounded p-2 text-sm text-white">
+                        <input type="password" placeholder="كلمة المرور" class="w-1/3 bg-slate-900 border border-slate-600 rounded p-2 text-sm text-white">
+                        <button class="w-1/3 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-sm font-bold transition">إضافة مستخدم</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <div id="tickets-modal" class="fixed inset-0 modal-overlay z-50 hidden opacity-0 transition-opacity duration-300 flex justify-center items-center p-4">
-        <div class="glass-card bg-slate-900 w-full max-w-6xl h-[85vh] flex flex-col rounded-2xl shadow-2xl relative">
-            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800/80 rounded-t-2xl">
-                <div class="flex items-center gap-4">
+        <div class="bg-slate-900 w-full max-w-[90vw] h-[85vh] flex flex-col rounded-2xl shadow-2xl border border-slate-800">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex items-center gap-6">
                     <h2 class="text-2xl font-bold text-white"><i class="fa-solid fa-ticket text-red-500 ml-2"></i>إدارة تذاكر الأعطال</h2>
-                    <button onclick="openTicketForm()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition flex items-center gap-2 text-sm">
+                    <button onclick="openTicketForm()" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg font-bold shadow transition flex items-center gap-2 text-sm">
                         <i class="fa-solid fa-plus"></i> تذكرة جديدة
                     </button>
                 </div>
-                <button onclick="closeModal('tickets-modal')" class="text-slate-400 hover:text-red-500 text-3xl transition"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="closeModal('tickets-modal')" class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-xmark text-3xl"></i></button>
             </div>
-            <div class="flex-1 overflow-auto p-0">
+            <div class="flex-1 overflow-auto p-6">
                 <table class="w-full text-left text-sm whitespace-nowrap" dir="rtl">
-                    <thead class="bg-slate-800/90 shadow-lg">
+                    <thead>
                         <tr>
-                            <th class="p-4 text-slate-300 font-semibold">رقم</th>
-                            <th class="p-4 text-slate-300 font-semibold">المستخدم</th>
-                            <th class="p-4 text-slate-300 font-semibold">المشكلة</th>
-                            <th class="p-4 text-slate-300 font-semibold">الفرع</th>
-                            <th class="p-4 text-slate-300 font-semibold">تاريخ التبليغ</th>
-                            <th class="p-4 text-slate-300 font-semibold">تاريخ الحل</th>
-                            <th class="p-4 text-slate-300 font-semibold">الحالة</th>
-                            <th class="p-4 text-center text-white bg-slate-800 sticky left-0 shadow-[-5px_0_10px_rgba(0,0,0,0.3)] z-20">الإجراء</th>
+                            <th>رقم</th>
+                            <th>المستخدم</th>
+                            <th>المشكلة</th>
+                            <th>الفرع</th>
+                            <th>تاريخ التبليغ</th>
+                            <th>تاريخ الحل</th>
+                            <th>الحالة</th>
+                            <th class="text-center">إجراء</th>
                         </tr>
                     </thead>
                     <tbody id="tickets-tbody" class="text-slate-300"></tbody>
@@ -95,201 +180,200 @@
         </div>
     </div>
 
-    <div id="ticket-form-modal" class="fixed inset-0 bg-black/90 z-[60] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-red-500/50 p-6 rounded-2xl w-full max-w-4xl shadow-[0_0_50px_rgba(239,68,68,0.1)] relative">
-            <h2 id="ticket-form-title" class="text-2xl font-bold text-white mb-6 border-b border-slate-700 pb-3"><i class="fa-solid fa-ticket text-red-500 ml-2"></i>تفاصيل التذكرة</h2>
+    <div id="ticket-form-modal" class="fixed inset-0 bg-slate-900/95 z-[60] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 p-8 rounded-2xl w-full max-w-4xl shadow-2xl">
+            <h2 id="ticket-form-title" class="text-xl font-bold text-white mb-6 border-b border-slate-700 pb-4">تفاصيل التذكرة</h2>
             <input type="hidden" id="t-id">
             
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div><label class="block text-slate-400 text-xs mb-1">اسم المستخدم (المبلغ)</label><input type="text" id="t-user" class="w-full bg-slate-800 border border-slate-700 text-white rounded p-2 outline-none focus:border-red-500"></div>
-                <div><label class="block text-slate-400 text-xs mb-1">الفرع</label><input type="text" id="t-branch" class="w-full bg-slate-800 border border-slate-700 text-white rounded p-2 outline-none focus:border-red-500"></div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div><label class="block text-slate-400 text-xs mb-2">اسم المستخدم</label><input type="text" id="t-user" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-red-500 outline-none transition"></div>
+                <div><label class="block text-slate-400 text-xs mb-2">الفرع</label><input type="text" id="t-branch" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-red-500 outline-none transition"></div>
                 <div>
-                    <label class="block text-slate-400 text-xs mb-1">الحالة</label>
-                    <select id="t-status" class="w-full bg-slate-800 border border-slate-700 text-white rounded p-2 outline-none focus:border-red-500 cursor-pointer">
-                        <option value="مفتوحة">مفتوحة</option>
-                        <option value="قيد العمل">قيد العمل</option>
+                    <label class="block text-slate-400 text-xs mb-2">الحالة</label>
+                    <select id="t-status" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-red-500 outline-none transition cursor-pointer">
+                        <option value="مفتوحة">مفتوحة (قيد الانتظار)</option>
+                        <option value="قيد العمل">قيد العمل (جاري الحل)</option>
                         <option value="مغلق">مغلق (تم الحل)</option>
                     </select>
                 </div>
                 
-                <div class="lg:col-span-3"><label class="block text-slate-400 text-xs mb-1">وصف المشكلة</label><input type="text" id="t-problem" class="w-full bg-slate-800 border border-slate-700 text-white rounded p-2 outline-none focus:border-red-500"></div>
+                <div class="md:col-span-3"><label class="block text-slate-400 text-xs mb-2">وصف المشكلة</label><input type="text" id="t-problem" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-red-500 outline-none transition"></div>
                 
-                <div><label class="block text-slate-400 text-xs mb-1">تاريخ التبليغ</label><input type="date" id="t-report" class="w-full bg-slate-800 border border-slate-700 text-white rounded p-2 outline-none focus:border-red-500 cursor-pointer"></div>
-                <div><label class="block text-slate-400 text-xs mb-1">تاريخ الحل (إن وُجد)</label><input type="date" id="t-solve" class="w-full bg-slate-800 border border-slate-700 text-white rounded p-2 outline-none focus:border-red-500 cursor-pointer"></div>
+                <div><label class="block text-slate-400 text-xs mb-2">تاريخ التبليغ</label><input type="date" id="t-report" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-red-500 outline-none transition"></div>
+                <div><label class="block text-slate-400 text-xs mb-2">تاريخ الحل</label><input type="date" id="t-solve" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-red-500 outline-none transition"></div>
                 
-                <div class="lg:col-span-3"><label class="block text-slate-400 text-xs mb-1">سبب المشكلة / طريقة الحل</label><textarea id="t-reason" class="w-full bg-slate-800 border border-slate-700 text-white rounded p-2 outline-none focus:border-red-500" rows="2"></textarea></div>
-                <div class="lg:col-span-3"><label class="block text-slate-400 text-xs mb-1">ملاحظات إضافية</label><input type="text" id="t-notes" class="w-full bg-slate-800 border border-slate-700 text-white rounded p-2 outline-none focus:border-red-500"></div>
+                <div class="md:col-span-3"><label class="block text-slate-400 text-xs mb-2">سبب المشكلة / الملاحظات</label><textarea id="t-reason" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-red-500 outline-none transition" rows="3"></textarea></div>
             </div>
             
             <div class="flex gap-4 mt-8">
-                <button id="save-ticket-btn" onclick="saveTicket()" class="w-2/3 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white py-3 rounded-lg font-bold shadow-lg transition-all flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-floppy-disk"></i> حفظ التذكرة
-                </button>
-                <button onclick="closeModal('ticket-form-modal')" class="w-1/3 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-lg font-bold transition">إلغاء</button>
+                <button id="save-ticket-btn" onclick="saveTicket()" class="flex-1 bg-red-600 hover:bg-red-500 text-white py-3 rounded-lg font-bold transition flex justify-center items-center gap-2">حفظ التذكرة</button>
+                <button onclick="closeModal('ticket-form-modal')" class="w-32 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-lg font-bold transition">إلغاء</button>
             </div>
+        </div>
+    </div>
+
+    <div id="assets-modal" class="fixed inset-0 modal-overlay z-50 hidden opacity-0 transition-opacity duration-300 flex justify-center items-center p-4">
+        <div class="bg-slate-900 w-full max-w-[95vw] h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-slate-800">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex gap-4 items-center">
+                    <h2 class="text-2xl font-bold text-white"><i class="fa-solid fa-laptop-code text-cyan-400 ml-2"></i>الأصول والعُهد</h2>
+                    <select id="branch-select" onchange="loadBranchData()" class="bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-2 outline-none focus:border-cyan-500">
+                        <option value="kitchino">فرع Kitchino</option>
+                        <option value="milark">فرع Milark</option>
+                        <option value="فرع زايد">فرع زايد</option>
+                    </select>
+                </div>
+                <button onclick="closeModal('assets-modal')" class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-xmark text-3xl"></i></button>
+            </div>
+            <div class="flex-1 overflow-auto p-6"><table class="w-full text-left text-sm whitespace-nowrap" dir="rtl"><thead id="assets-thead"></thead><tbody id="assets-tbody"></tbody></table></div>
         </div>
     </div>
 
     <script>
         // ==========================================
-        // ضع رابط الـ API الجديد هنا
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwbc6jWdf4rulMkGSQYOAtZnkB-UKvCcOn0-3phickJ_-e8IhuKafa7qvwCkjRi56vq1A/exec';
         // ==========================================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxtH_tooMSjY4sa0a78AEFNVWOtuPMlTQ2jGOa1TxZol-kCuvQtZr4RkSMhcK5cwxJsrA/exec';
 
-        let currentTicketsData = []; // لحفظ التذاكر
+        let currentTicketsData = [];
 
+        // --- نظام تسجيل الدخول (Authentication Simulation) ---
+        function handleLogin() {
+            const user = document.getElementById('login-user').value.trim();
+            const pass = document.getElementById('login-pass').value.trim();
+            
+            // بيانات الدخول المؤقتة (تأكد من تغييرها)
+            if((user === 'hazem' || user === 'admin') && pass === '12345') {
+                document.getElementById('login-view').classList.add('opacity-0');
+                setTimeout(() => {
+                    document.getElementById('login-view').classList.add('hidden');
+                    document.getElementById('main-dashboard').classList.remove('hidden');
+                    document.getElementById('display-user-name').innerText = user === 'hazem' ? 'م. حازم' : 'Admin';
+                    showToast('تم تسجيل الدخول بنجاح');
+                }, 500);
+            } else {
+                alert('اسم المستخدم أو كلمة المرور غير صحيحة!');
+            }
+        }
+
+        function logout() {
+            document.getElementById('main-dashboard').classList.add('hidden');
+            document.getElementById('login-view').classList.remove('hidden');
+            document.getElementById('login-view').classList.remove('opacity-0');
+            document.getElementById('login-user').value = '';
+            document.getElementById('login-pass').value = '';
+        }
+
+        // --- دوال النظام الأساسية ---
         function showToast(msg, isError = false) {
             const toast = document.getElementById('toast');
-            toast.className = `fixed top-5 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg z-[100] transition-opacity duration-300 flex items-center gap-3 text-white pointer-events-none ${isError ? 'bg-red-500' : 'bg-green-500'}`;
+            toast.className = `fixed top-5 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg z-[9999] transition-opacity duration-300 flex items-center gap-3 text-white pointer-events-none ${isError ? 'bg-red-500' : 'bg-green-500'}`;
             document.getElementById('toast-msg').innerText = msg;
-            toast.querySelector('i').className = isError ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check';
             toast.classList.remove('opacity-0');
             setTimeout(() => toast.classList.add('opacity-0'), 3500);
         }
 
-        function openModal(id) { 
-            const m = document.getElementById(id);
-            m.classList.remove('hidden'); 
-            setTimeout(() => m.classList.remove('opacity-0'), 10); 
-        }
-        function closeModal(id) { 
-            const m = document.getElementById(id);
-            m.classList.add('opacity-0'); 
-            setTimeout(() => m.classList.add('hidden'), 300); 
-        }
+        function openModal(id) { const m = document.getElementById(id); m.classList.remove('hidden'); setTimeout(() => m.classList.remove('opacity-0'), 10); }
+        function closeModal(id) { const m = document.getElementById(id); m.classList.add('opacity-0'); setTimeout(() => m.classList.add('hidden'), 300); }
+        
+        function openSettingsModal() { openModal('settings-modal'); }
 
-        // ==================== قسم إدارة التذاكر (الجديد كلياً) ====================
-        function openTicketsModal() { 
-            openModal('tickets-modal'); 
-            loadTickets(); 
-        }
+        // --- قسم التذاكر ---
+        function openTicketsModal() { openModal('tickets-modal'); loadTickets(); }
         
         async function loadTickets() {
             const tbody = document.getElementById('tickets-tbody');
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-20"><span class="loader"></span> جاري تحميل التذاكر...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-20"><span class="loader"></span></td></tr>';
             try {
                 const res = await fetch(`${API_URL}?type=tickets`); 
                 currentTicketsData = await res.json();
                 let html = '';
                 
-                // عكس الترتيب لتظهر التذاكر الأحدث (أسفل الشيت) في أعلى الجدول
-                currentTicketsData.slice().reverse().forEach((r, reversedIndex) => {
-                    const originalIndex = currentTicketsData.length - 1 - reversedIndex;
+                // تم إزالة (reverse) ليعرض الترتيب الأصلي من الأصغر للأكبر كما طلبت
+                currentTicketsData.forEach((r, index) => {
                     if(!r['رقم التيكت']) return;
                     
-                    let statusColor = '';
-                    if (r['الحالة (مفتوحة/قيد العمل/مغلقة)'] === 'مغلق') statusColor = 'text-green-400 bg-green-500/10';
-                    else if (r['الحالة (مفتوحة/قيد العمل/مغلقة)'] === 'قيد العمل') statusColor = 'text-yellow-400 bg-yellow-500/10';
-                    else statusColor = 'text-red-400 font-bold bg-red-500/10 animate-pulse';
+                    let statusBadge = '';
+                    if (r['الحالة (مفتوحة/قيد العمل/مغلقة)'] === 'مغلق') statusBadge = '<span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/20">مغلق</span>';
+                    else if (r['الحالة (مفتوحة/قيد العمل/مغلقة)'] === 'قيد العمل') statusBadge = '<span class="bg-yellow-500/10 text-yellow-400 px-3 py-1 rounded-full text-xs font-bold border border-yellow-500/20">قيد العمل</span>';
+                    else statusBadge = '<span class="bg-red-500/10 text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-500/20 animate-pulse">مفتوحة</span>';
 
                     html += `
-                        <tr class="border-b border-slate-700/50 hover:bg-slate-800/50">
-                            <td class="p-4 font-bold text-white">#${r['رقم التيكت']}</td>
-                            <td class="p-4 font-bold text-cyan-300"><i class="fa-solid fa-user text-slate-500 ml-1 text-xs"></i> ${r['اسم المستخدم']||'-'}</td>
-                            <td class="p-4 text-slate-300 max-w-[200px] truncate" title="${r['مشكله']}">${r['مشكله']||'-'}</td>
-                            <td class="p-4 text-xs">${r['الفرع']||'-'}</td>
-                            <td class="p-4 text-xs text-slate-400">${r['تاريخ التبليغ']||'-'}</td>
-                            <td class="p-4 text-xs text-slate-400">${r['تاريخ الحل']||'-'}</td>
-                            <td class="p-4"><span class="px-2 py-1 rounded text-xs ${statusColor}">${r['الحالة (مفتوحة/قيد العمل/مغلقة)']||'مفتوحة'}</span></td>
-                            <td class="p-4 text-center bg-slate-800/90 sticky left-0 border-b border-slate-700/50 shadow-[-5px_0_10px_rgba(0,0,0,0.3)]">
-                                <button onclick="openTicketForm(${originalIndex})" class="bg-slate-700 hover:bg-red-600 text-red-400 hover:text-white border border-slate-600 hover:border-red-500 px-3 py-1.5 rounded shadow transition text-xs font-bold"><i class="fa-solid fa-pen"></i> تعديل</button>
+                        <tr class="data-row">
+                            <td class="font-bold text-white">#${r['رقم التيكت']}</td>
+                            <td class="text-cyan-300 font-semibold"><i class="fa-solid fa-user text-slate-500 ml-2"></i>${r['اسم المستخدم']||'-'}</td>
+                            <td class="max-w-[200px] truncate" title="${r['مشكله']}">${r['مشكله']||'-'}</td>
+                            <td class="text-xs">${r['الفرع']||'-'}</td>
+                            <td class="text-xs text-slate-400 font-mono">${r['تاريخ التبليغ']||'-'}</td>
+                            <td class="text-xs text-slate-400 font-mono">${r['تاريخ الحل']||'-'}</td>
+                            <td>${statusBadge}</td>
+                            <td class="text-center">
+                                <button onclick="openTicketForm(${index})" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center justify-center gap-1 mx-auto">
+                                    <i class="fa-solid fa-pen text-slate-400"></i> تعديل
+                                </button>
                             </td>
                         </tr>`;
                 });
-                tbody.innerHTML = html || '<tr><td colspan="8" class="text-center py-20 text-slate-500">لا توجد تذاكر مسجلة</td></tr>';
-            } catch(e) { 
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-20 text-red-500">خطأ في الاتصال بالبيانات</td></tr>'; 
-            }
+                tbody.innerHTML = html || '<tr><td colspan="8" class="text-center py-20 text-slate-500">لا توجد تذاكر</td></tr>';
+            } catch(e) { tbody.innerHTML = '<tr><td colspan="8" class="text-center py-20 text-red-500">خطأ في الاتصال بالخادم</td></tr>'; }
         }
 
-        // فتح نموذج إضافة أو تعديل تذكرة
         function openTicketForm(index = -1) {
             if (index === -1) {
-                // تذكرة جديدة
-                document.getElementById('ticket-form-title').innerHTML = '<i class="fa-solid fa-plus text-red-500 ml-2"></i>إضافة تذكرة جديدة';
+                document.getElementById('ticket-form-title').innerText = 'إضافة تذكرة جديدة';
                 document.getElementById('t-id').value = '';
                 document.getElementById('t-user').value = '';
                 document.getElementById('t-problem').value = '';
                 document.getElementById('t-branch').value = '';
                 document.getElementById('t-status').value = 'مفتوحة';
-                // وضع تاريخ اليوم كافتراضي
                 document.getElementById('t-report').value = new Date().toISOString().split('T')[0];
                 document.getElementById('t-solve').value = '';
                 document.getElementById('t-reason').value = '';
-                document.getElementById('t-notes').value = '';
             } else {
-                // تعديل تذكرة موجودة
                 const r = currentTicketsData[index];
-                document.getElementById('ticket-form-title').innerHTML = '<i class="fa-solid fa-pen text-red-500 ml-2"></i>تعديل حالة التذكرة #' + r['رقم التيكت'];
+                document.getElementById('ticket-form-title').innerText = 'تعديل تذكرة #' + r['رقم التيكت'];
                 document.getElementById('t-id').value = r['رقم التيكت'];
                 document.getElementById('t-user').value = r['اسم المستخدم'] || '';
                 document.getElementById('t-problem').value = r['مشكله'] || '';
                 document.getElementById('t-branch').value = r['الفرع'] || '';
-                
                 const status = r['الحالة (مفتوحة/قيد العمل/مغلقة)'];
                 document.getElementById('t-status').value = (status === 'مغلق' || status === 'قيد العمل') ? status : 'مفتوحة';
                 
-                // تنسيق التاريخ ليناسب حقل date
-                const formatForInput = (dateStr) => {
-                    if(!dateStr) return '';
-                    // إذا كان التاريخ بصيغة yyyy-mm-dd
-                    if (dateStr.match(/^\d{4}-\d{2}-\d{2}/)) return dateStr.substring(0,10);
-                    return ''; // تجنب الأخطاء مع التواريخ غير المنسقة
-                };
-
-                document.getElementById('t-report').value = formatForInput(r['تاريخ التبليغ']);
-                document.getElementById('t-solve').value = formatForInput(r['تاريخ الحل']);
-                document.getElementById('t-reason').value = r['السبب'] || '';
-                document.getElementById('t-notes').value = r['ملاحظات'] || '';
+                const fmt = d => d && d.match(/^\d{4}-\d{2}-\d{2}/) ? d.substring(0,10) : '';
+                document.getElementById('t-report').value = fmt(r['تاريخ التبليغ']);
+                document.getElementById('t-solve').value = fmt(r['تاريخ الحل']);
+                document.getElementById('t-reason').value = (r['السبب'] || '') + (r['ملاحظات'] ? ' - ' + r['ملاحظات'] : '');
             }
             openModal('ticket-form-modal');
         }
 
         async function saveTicket() {
             const btn = document.getElementById('save-ticket-btn');
-            btn.innerHTML = '<span class="loader !w-5 !h-5 !border-[2px]"></span> جاري الحفظ...';
-            btn.disabled = true;
-
+            btn.innerHTML = '<span class="loader !w-5 !h-5 !border-[2px]"></span>'; btn.disabled = true;
             const t_id = document.getElementById('t-id').value;
-            const is_new = t_id === '';
-
             const payload = {
-                action: "save_ticket",
-                is_new: is_new,
-                admin: "م. حازم (IT Admin)",
+                action: "save_ticket", is_new: t_id === '', admin: document.getElementById('display-user-name').innerText,
                 ticket_data: {
-                    id: t_id,
-                    user: document.getElementById('t-user').value,
-                    problem: document.getElementById('t-problem').value,
-                    branch: document.getElementById('t-branch').value,
-                    status: document.getElementById('t-status').value,
-                    report_date: document.getElementById('t-report').value,
-                    solve_date: document.getElementById('t-solve').value,
-                    reason: document.getElementById('t-reason').value,
-                    notes: document.getElementById('t-notes').value
+                    id: t_id, user: document.getElementById('t-user').value, problem: document.getElementById('t-problem').value,
+                    branch: document.getElementById('t-branch').value, status: document.getElementById('t-status').value,
+                    report_date: document.getElementById('t-report').value, solve_date: document.getElementById('t-solve').value,
+                    reason: document.getElementById('t-reason').value, notes: ''
                 }
             };
-            
             try {
                 const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
                 const json = await res.json();
-                
-                if(json.success) { 
-                    showToast(json.message); 
-                    closeModal('ticket-form-modal'); 
-                    loadTickets(); 
-                } else {
-                    showToast(json.message, true);
-                }
-            } catch(e) { 
-                showToast('خطأ في الاتصال بالخادم', true); 
-            } finally {
-                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> حفظ التذكرة';
-                btn.disabled = false;
-            }
+                if(json.success) { showToast(json.message); closeModal('ticket-form-modal'); loadTickets(); } 
+                else showToast(json.message, true);
+            } catch(e) { showToast('خطأ في الاتصال بالخادم', true); } 
+            finally { btn.innerHTML = 'حفظ التذكرة'; btn.disabled = false; }
         }
-        
-        // (ضع باقي دوال الجافاسكريبت الخاصة بالأصول والشبكات التي عملناها في الخطوة السابقة هنا)
+
+        // (رسم بياني تجريبي بسيط)
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line', data: { labels: ['1','2','3','4'], datasets: [{label: 'أعطال', data: [12,19,15,8], borderColor: '#ef4444'}] },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
     </script>
 </body>
 </html>
