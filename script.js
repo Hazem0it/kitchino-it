@@ -1,10 +1,22 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbyuz1YEiconjtm4Cz8KT9-D91tYVPqA_uJ0QVnf5mH5P3zeELjbsYRK6kYPBzinqHlb3Q/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzEDu1BzK7R1P2S7mHqFgjNfBMq25G2Qi3YTxfLbImnsuMqFCuJnAAiEf4JU7kVcm-o2Q/exec';
+
 function normalizeArabic(text) {
     if (!text) return '';
     return text.replace(/[أإآا]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ً|ٌ|ٍ|َ|ُ|ِ|ّ|ْ/g, '');
 }
 
-// --- نظام الحسابات وإدارة الجلسات (Session & Inactivity) ---
+// دالة تلوين النصوص المفصولة بـ / للهاردوير والسيريالات
+function colorizeText(text) {
+    if (!text) return '-';
+    const colors = ['text-cyan-300', 'text-green-400', 'text-purple-300', 'text-yellow-400', 'text-pink-300'];
+    const parts = text.split('/');
+    if (parts.length === 1) return text;
+    return parts.map((part, index) => {
+        return `<span class="${colors[index % colors.length]} font-semibold">${part.trim()}</span>`;
+    }).join('<span class="text-slate-600 font-black mx-2">/</span>');
+}
+
+// --- نظام الحسابات وإدارة الجلسات ---
 let usersDB = [
     { username: 'hazem', pass: '12345', role: 'Admin' },
     { username: 'admin', pass: '12345', role: 'Admin' },
@@ -26,24 +38,12 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-function startInactivityTimer() {
-    window.onload = resetTimer;
-    document.onmousemove = resetTimer;
-    document.onkeypress = resetTimer;
-    document.onclick = resetTimer;
-    resetTimer();
-}
-
-function resetTimer() {
-    clearTimeout(inactivityTimer);
-    inactivityTimer = setTimeout(logout, 10 * 60 * 1000); // 10 دقائق 
-}
+function startInactivityTimer() { window.onload = resetTimer; document.onmousemove = resetTimer; document.onkeypress = resetTimer; document.onclick = resetTimer; resetTimer(); }
+function resetTimer() { clearTimeout(inactivityTimer); inactivityTimer = setTimeout(logout, 10 * 60 * 1000); }
 
 function handleLogin() { 
     const u = document.getElementById('login-user').value.trim().toLowerCase();
-    // تم إضافة .trim() لمسح أي مسافات خاطئة في الباسورد
     const p = document.getElementById('login-pass').value.trim(); 
-    
     const v = usersDB.find(x => x.username.toLowerCase() === u && x.pass === p); 
     if(v) {
         currentUserRole = v.role; 
@@ -57,26 +57,18 @@ function handleLogin() {
             showToast('مرحباً بك في النظام');
             startInactivityTimer();
         }, 500);
-    } else {
-        showToast('خطأ في اسم المستخدم أو كلمة المرور', true);
-    }
+    } else { showToast('خطأ في اسم المستخدم أو كلمة المرور', true); }
 }
 
 function logout() { 
-    clearTimeout(inactivityTimer);
-    localStorage.removeItem('kitchino_user');
+    clearTimeout(inactivityTimer); localStorage.removeItem('kitchino_user');
     document.getElementById('main-dashboard').classList.add('hidden'); 
     document.getElementById('login-view').classList.remove('hidden','opacity-0'); 
-    document.getElementById('login-user').value = ''; 
-    document.getElementById('login-pass').value = ''; 
-    currentUserRole = '';
+    document.getElementById('login-user').value = ''; document.getElementById('login-pass').value = ''; currentUserRole = '';
 }
 
 function checkPermission() {
-    if (currentUserRole === 'Viewer') {
-        showToast('عفواً، حسابك للمشاهدة فقط. غير مصرح لك بالتعديل.', true);
-        return false;
-    }
+    if (currentUserRole === 'Viewer') { showToast('عفواً، حسابك للمشاهدة فقط. غير مصرح لك بالتعديل.', true); return false; }
     return true;
 }
 
@@ -117,7 +109,7 @@ async function saveTicket() {
     try{ const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(p),headers:{'Content-Type':'text/plain;charset=utf-8'}}); const j=await res.json(); if(j.success){showToast(j.message);closeModal('ticket-form-modal');loadTickets();}else showToast(j.message,true); }catch(e){showToast('خطأ بالاتصال',true);}finally{btn.innerHTML='حفظ';btn.disabled=false;} 
 }
 
-// --- الأصول وتكبير الأعمدة ---
+// --- الأصول وتكبير الأعمدة والبحث الذكي ---
 let currentAssetsData = [];
 function openAssetsModal() { openModal('assets-modal'); loadBranchData(); document.getElementById('asset-search').value = ''; document.getElementById('status-filter').value = 'all'; }
 
@@ -147,11 +139,11 @@ function renderAssetsTable() {
     const tbody = document.getElementById('assets-tbody');
     let html = ''; let count = 0;
     currentAssetsData.forEach((r, index) => {
-        const serial = r['Board Serial Number'] || r['سيريال لاب توب'] || '';
+        const serialRaw = r['Board Serial Number'] || r['سيريال لاب توب'] || '';
         const empName = r['اسم الموظف'] || '';
         const prevEmp = r['الموظف السابق'] || '';
         
-        if(!serial && !empName) return;
+        if(!serialRaw && !empName) return;
         count++;
         
         let empDisplay = '';
@@ -164,16 +156,20 @@ function renderAssetsTable() {
             empDisplay = `<i class="fa-solid fa-user text-slate-500 ml-2 text-xs"></i>${empName}`;
         }
 
+        const coloredSerial = colorizeText(serialRaw);
+        const hwRaw = r['Hardware'] || r['مواصفات الجهاز'] || '';
+        const coloredHardware = colorizeText(hwRaw);
+
         html += `
             <tr class="data-row asset-row" data-status="${statusVal}">
                 <td class="font-bold text-slate-400">${count}</td>
                 <td class="font-bold text-white emp-search-val">${empDisplay}</td>
                 <td class="text-xs text-slate-300">${r['Computer Name'] || '-'}</td>
-                <td class="font-mono text-cyan-400 font-bold serial-search-val">${serial}</td>
+                <td class="font-mono text-sm serial-search-val" dir="ltr">${coloredSerial}</td>
                 <td class="text-xs text-slate-300">${r['User Name'] || '-'}</td>
                 <td class="text-xs text-slate-300 os-search-val"><span class="bg-slate-800 px-2 py-1 rounded border border-slate-700">${r['O.S'] || '-'}</span></td>
                 <td class="text-xs text-slate-300 max-w-[150px] truncate" title="${r['Model'] || ''}">${r['Model'] || '-'}</td>
-                <td class="text-xs text-slate-300 max-w-[200px] truncate" title="${r['Hardware'] || r['مواصفات الجهاز'] || ''}">${r['Hardware'] || r['مواصفات الجهاز'] || '-'}</td>
+                <td class="text-xs text-slate-300 max-w-[350px] truncate" title="${hwRaw}" dir="ltr">${coloredHardware}</td>
                 <td class="text-xs text-slate-300">${r['Printer '] || r['Printer'] || '-'}</td>
                 <td class="text-xs text-slate-300 max-w-[200px] truncate" title="${r['O.S. & Programes'] || ''}">${r['O.S. & Programes'] || '-'}</td>
                 <td class="text-xs text-slate-300">${r['Branche \\ Location '] || r['Branche \\ Location'] || '-'}</td>
@@ -264,7 +260,7 @@ async function saveAssetChanges() {
     try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); const json = await res.json(); if(json.success) { showToast('تم الحفظ بنجاح!'); closeModal('asset-edit-modal'); loadBranchData(); } else showToast(json.message, true); } catch(e) { showToast('خطأ بالاتصال', true); } finally { btn.innerHTML = 'حفظ البيانات'; btn.disabled = false; }
 }
 
-// --- 4. سجل الحركات (Logs) المطور لتجنب أسماء الأعمدة ---
+// --- 4. سجل الحركات (Logs) المطور ---
 function openLogsModal() { openModal('logs-modal'); loadLogs(); }
 
 async function loadLogs() {
@@ -274,15 +270,9 @@ async function loadLogs() {
         const res = await fetch(`${API_URL}?type=logs`);
         const data = await res.json();
         let html = '';
-        
-        // عكس الترتيب لعرض أحدث حركة في الأعلى
         data.slice().reverse().forEach(r => {
-            // استخدام Object.values لجلب البيانات بالترتيب (أياً كانت أسماء الأعمدة في الإكسيل)
-            // cols[0] = التاريخ، cols[1] = العملية، cols[2] = السيريال، cols[3] = الموظف، cols[4] = المنفذ
             const cols = Object.values(r); 
-            
-            if(!cols[0]) return; // تجاهل الصفوف الفارغة
-            
+            if(!cols[0]) return; 
             html += `
                 <tr class="data-row hover:bg-slate-800/50 transition border-b border-slate-700/50">
                     <td class="p-4 font-mono text-cyan-300 text-xs">${cols[0] || '-'}</td>
@@ -293,9 +283,7 @@ async function loadLogs() {
                 </tr>`;
         });
         tbody.innerHTML = html || '<tr><td colspan="5" class="text-center py-20 text-slate-500">لا توجد حركات مسجلة</td></tr>';
-    } catch(e) { 
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-20 text-red-500">خطأ في الاتصال بالبيانات</td></tr>'; 
-    }
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-20 text-red-500">خطأ في الاتصال بالبيانات</td></tr>'; }
 }
 
 // 5. الشبكات
