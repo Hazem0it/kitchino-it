@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbwbc6jWdf4rulMkGSQYOAtZnkB-UKvCcOn0-3phickJ_-e8IhuKafa7qvwCkjRi56vq1A/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwVUyW77Hfawciw7M06j7TpHX8EGvVovlZJZqrLsDMLMvDW4NqpCglpC2E8Y8wDtd6GRA/exec';
 
 function normalizeArabic(text) {
     if (!text) return '';
