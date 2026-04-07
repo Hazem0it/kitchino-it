@@ -91,11 +91,29 @@ function openModal(id) { document.getElementById(id).classList.remove('hidden');
 function closeModal(id) { document.getElementById(id).classList.add('opacity-0'); setTimeout(()=>document.getElementById(id).classList.add('hidden'),300); }
 function openSettingsModal() { openModal('settings-modal'); }
 
-// --- التذاكر (محدثة لحل مشكلة الفراغات) ---
+// --- التذاكر الذكية ---
 let allTicketsData = []; let currentFilter = 'all';
 function openTicketsModal() { openModal('tickets-modal'); loadTickets(); }
-async function loadTickets() { document.getElementById('tickets-tbody').innerHTML='<tr><td colspan="8" class="text-center py-20"><span class="loader"></span> جاري التحميل...</td></tr>'; try{ const res=await fetch(`${API_URL}?type=tickets`); allTicketsData=await res.json(); renderTickets(); }catch(e){ document.getElementById('tickets-tbody').innerHTML='<tr><td colspan="8" class="text-center py-20 text-red-500">خطأ في الاتصال</td></tr>'; } }
-function filterTickets(s) { currentFilter=s; document.querySelectorAll('.filter-tab').forEach(t=>{t.classList.remove('active','bg-cyan-600','text-white','border-cyan-500');t.classList.add('bg-slate-800','text-slate-300');}); const at=document.getElementById(s==='all'?'tab-all':(s==='مفتوحة'?'tab-open':(s==='مغلق'?'tab-closed':'tab-progress'))); at.classList.remove('bg-slate-800','text-slate-300'); at.classList.add('active','bg-cyan-600','text-white','border-cyan-500'); renderTickets(); }
+
+async function loadTickets() { 
+    document.getElementById('tickets-tbody').innerHTML='<tr><td colspan="8" class="text-center py-20"><span class="loader"></span> جاري التحميل...</td></tr>'; 
+    try{ 
+        const res=await fetch(`${API_URL}?type=tickets`); 
+        allTicketsData=await res.json(); 
+        renderTickets(); 
+    } catch(e){ 
+        document.getElementById('tickets-tbody').innerHTML='<tr><td colspan="8" class="text-center py-20 text-red-500">خطأ في الاتصال</td></tr>'; 
+    } 
+}
+
+function filterTickets(s) { 
+    currentFilter=s; 
+    document.querySelectorAll('.filter-tab').forEach(t=>{t.classList.remove('active','bg-cyan-600','text-white','border-cyan-500');t.classList.add('bg-slate-800','text-slate-300');}); 
+    const at=document.getElementById(s==='all'?'tab-all':(s==='مفتوحة'?'tab-open':(s==='مغلق'?'tab-closed':'tab-progress'))); 
+    at.classList.remove('bg-slate-800','text-slate-300'); 
+    at.classList.add('active','bg-cyan-600','text-white','border-cyan-500'); 
+    renderTickets(); 
+}
 
 function renderTickets() { 
     const tb=document.getElementById('tickets-tbody'); 
@@ -105,7 +123,7 @@ function renderTickets() {
         const userName = (r['اسم المستخدم'] || r['المستخدم'] || '').trim();
         const problem = (r['مشكله'] || r['المشكلة'] || '').trim();
         if (!r['رقم التيكت'] || (!userName && !problem)) return false; 
-
+        
         const s=r['الحالة (مفتوحة/قيد العمل/مغلقة)'] || 'مفتوحة';
         if (currentFilter === 'all') return true;
         if (currentFilter === 'مفتوحة') return s !== 'مغلق' && s !== 'قيد العمل';
@@ -119,11 +137,94 @@ function renderTickets() {
     tb.innerHTML=h||'<tr><td colspan="8" class="text-center py-20 text-slate-500">لا توجد تذاكر متطابقة</td></tr>'; 
 }
 
-function openTicketForm(idx=-1) { 
+// دالة سحب الموظفين بناءً على الفرع للتذاكر
+async function loadUsersForTicket(selectedUser = '') {
+    const branch = document.getElementById('t-branch').value;
+    const userSelect = document.getElementById('t-user');
+    
+    if (!branch) {
+        userSelect.innerHTML = '<option value="">اختر الفرع أولاً...</option>';
+        return;
+    }
+
+    userSelect.innerHTML = '<option value="">جاري سحب الموظفين...</option>';
+    try {
+        const res = await fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(branch)}`);
+        const data = await res.json();
+        
+        const uniqueUsers = new Set();
+        data.forEach(r => {
+            const empName = (r['اسم الموظف'] || '').trim();
+            if (empName) uniqueUsers.add(empName);
+        });
+
+        let html = '<option value="">-- اختر الموظف --</option>';
+        Array.from(uniqueUsers).sort().forEach(user => {
+            html += `<option value="${user}">${user}</option>`;
+        });
+        userSelect.innerHTML = html;
+
+        if (selectedUser && uniqueUsers.has(selectedUser)) {
+            userSelect.value = selectedUser;
+        } else if (selectedUser) {
+            userSelect.innerHTML += `<option value="${selectedUser}">${selectedUser}</option>`;
+            userSelect.value = selectedUser;
+        }
+    } catch (e) {
+        userSelect.innerHTML = '<option value="">خطأ في التحميل</option>';
+    }
+}
+
+// دالة إضافة موظف جديد من داخل نافذة التذكرة
+async function addNewUserFromTicket() {
+    if(!checkPermission()) return;
+    const branch = document.getElementById('t-branch').value;
+    if (!branch) return showToast('يرجى اختيار الفرع أولاً من القائمة', true);
+
+    const newName = prompt('أدخل اسم الموظف الجديد:');
+    if (!newName || newName.trim() === '') return;
+    
+    const newLocation = prompt(`أدخل الموقع/القسم الخاص بـ ${newName}:`, 'مكتب عام');
+    
+    const userSelect = document.getElementById('t-user');
+    userSelect.innerHTML += `<option value="${newName}" selected>جاري التسجيل...</option>`;
+    userSelect.value = newName;
+
+    const payload = {
+        action: "add_asset",
+        branch: branch,
+        admin: document.getElementById('display-user-name').innerText,
+        updates: {
+            "Board Serial Number": "PENDING-" + Math.floor(Math.random() * 100000),
+            "اسم الموظف": newName,
+            "Branche \\ Location": newLocation || ''
+        }
+    };
+
+    try {
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: {'Content-Type': 'text/plain;charset=utf-8'} });
+        const json = await res.json();
+        if(json.success) {
+            showToast(`تم إضافة ${newName} لقاعدة البيانات!`);
+            await loadUsersForTicket(newName); 
+        } else {
+            showToast(json.message, true);
+            await loadUsersForTicket(); 
+        }
+    } catch(e) {
+        showToast('خطأ بالاتصال', true);
+    }
+}
+
+// دالة فتح فورم التذاكر الذكي
+async function openTicketForm(idx=-1) { 
+    openModal('ticket-form-modal');
+    
     if(idx===-1){ 
         document.getElementById('ticket-form-title').innerHTML='<i class="fa-solid fa-plus text-red-500 ml-2"></i>إضافة تذكرة جديدة'; 
         document.getElementById('t-id').value=''; 
-        document.getElementById('t-user').value=''; 
+        document.getElementById('t-branch').value=''; 
+        document.getElementById('t-user').innerHTML='<option value="">اختر الفرع أولاً...</option>'; 
         document.getElementById('t-problem').value=''; 
         document.getElementById('t-status').value='مفتوحة'; 
         document.getElementById('t-report').value=new Date().toISOString().split('T')[0]; 
@@ -133,9 +234,17 @@ function openTicketForm(idx=-1) {
         const r=allTicketsData[idx]; 
         document.getElementById('ticket-form-title').innerHTML='<i class="fa-solid fa-pen text-red-500 ml-2"></i>تعديل التذكرة #' + r['رقم التيكت']; 
         document.getElementById('t-id').value=r['رقم التيكت']; 
-        document.getElementById('t-user').value=r['اسم المستخدم']||''; 
-        document.getElementById('t-problem').value=r['مشكله']||''; 
+        
         document.getElementById('t-branch').value=r['الفرع']||''; 
+        
+        if (r['الفرع']) {
+            await loadUsersForTicket(r['اسم المستخدم']);
+        } else {
+            document.getElementById('t-user').innerHTML = `<option value="${r['اسم المستخدم']}">${r['اسم المستخدم']}</option>`;
+            document.getElementById('t-user').value = r['اسم المستخدم'] || '';
+        }
+
+        document.getElementById('t-problem').value=r['مشكله']||''; 
         const s=r['الحالة (مفتوحة/قيد العمل/مغلقة)']; 
         document.getElementById('t-status').value=(s==='مغلق'||s==='قيد العمل')?s:'مفتوحة'; 
         const f=d=>d&&d.match(/^\d{4}-\d{2}-\d{2}/)?d.substring(0,10):''; 
@@ -143,14 +252,14 @@ function openTicketForm(idx=-1) {
         document.getElementById('t-solve').value=f(r['تاريخ الحل']); 
         document.getElementById('t-reason').value=r['السبب']||''; 
     } 
-    openModal('ticket-form-modal'); 
 }
 
 async function saveTicket() { 
     if(!checkPermission()) return;
     const btn=document.getElementById('save-ticket-btn'); btn.innerHTML='<span class="loader !w-5 !h-5"></span>'; btn.disabled=true; 
+    
     const p={action:"save_ticket",is_new:document.getElementById('t-id').value==='',admin:document.getElementById('display-user-name').innerText,ticket_data:{id:document.getElementById('t-id').value,user:document.getElementById('t-user').value,problem:document.getElementById('t-problem').value,branch:document.getElementById('t-branch').value,status:document.getElementById('t-status').value,report_date:document.getElementById('t-report').value,solve_date:document.getElementById('t-solve').value,reason:document.getElementById('t-reason').value,notes:''}}; 
-    try{ const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(p),headers:{'Content-Type':'text/plain;charset=utf-8'}}); const j=await res.json(); if(j.success){showToast(j.message);closeModal('ticket-form-modal');loadTickets();}else showToast(j.message,true); }catch(e){showToast('خطأ بالاتصال',true);}finally{btn.innerHTML='حفظ';btn.disabled=false;} 
+    try{ const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(p),headers:{'Content-Type':'text/plain;charset=utf-8'}}); const j=await res.json(); if(j.success){showToast(j.message);closeModal('ticket-form-modal');loadTickets();}else showToast(j.message,true); }catch(e){showToast('خطأ بالاتصال',true);}finally{btn.innerHTML='حفظ التذكرة';btn.disabled=false;} 
 }
 
 // --- الأصول وتكبير الأعمدة والفلترة الذكية ---
@@ -327,7 +436,7 @@ function revokeAsset(index) {
     saveAssetChanges();
 }
 
-// --- 4. سجل الحركات (Logs) المطور ---
+// --- سجل الحركات (Logs) ---
 function openLogsModal() { openModal('logs-modal'); loadLogs(); }
 
 async function loadLogs() {
@@ -353,6 +462,6 @@ async function loadLogs() {
     } catch(e) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-20 text-red-500">خطأ في الاتصال بالبيانات</td></tr>'; }
 }
 
-// 5. الشبكات
+// الشبكات
 function openNetworksModal() { openModal('networks-modal'); loadNetworks(); }
 async function loadNetworks() { document.getElementById('networks-tbody').innerHTML='<tr><td colspan="5" class="text-center py-20"><span class="loader"></span></td></tr>'; try{ const res=await fetch(`${API_URL}?type=networks`); const data=await res.json(); let h=''; data.forEach(r=>{if(!r['اسم الشبكه '])return; h+=`<tr class="data-row"><td class="p-4 font-bold text-white"><i class="fa-solid fa-location-dot text-slate-500 ml-2"></i>${r['فرع']||'-'}</td><td class="p-4 text-cyan-300 font-bold">${r['اسم الشبكه ']||'-'}</td><td class="p-4 text-green-400 font-mono">${r['قوه شبكه  db']||'-'} db</td><td class="p-4 text-xs max-w-[200px] truncate" title="${r['الاجهزه ']}">${r['الاجهزه ']}</td><td class="p-4 font-bold text-center">${r['عدد روتر ']||'-'}</td></tr>`;}); document.getElementById('networks-tbody').innerHTML=h||'<tr><td colspan="5" class="text-center py-20 text-slate-500">لا توجد بيانات</td></tr>'; }catch(e){ document.getElementById('networks-tbody').innerHTML='<tr><td colspan="5" class="text-center py-20 text-red-500">خطأ</td></tr>'; } }
