@@ -91,13 +91,60 @@ function openModal(id) { document.getElementById(id).classList.remove('hidden');
 function closeModal(id) { document.getElementById(id).classList.add('opacity-0'); setTimeout(()=>document.getElementById(id).classList.add('hidden'),300); }
 function openSettingsModal() { openModal('settings-modal'); }
 
-// --- التذاكر ---
+// --- التذاكر (محدثة لحل مشكلة الفراغات) ---
 let allTicketsData = []; let currentFilter = 'all';
 function openTicketsModal() { openModal('tickets-modal'); loadTickets(); }
 async function loadTickets() { document.getElementById('tickets-tbody').innerHTML='<tr><td colspan="8" class="text-center py-20"><span class="loader"></span> جاري التحميل...</td></tr>'; try{ const res=await fetch(`${API_URL}?type=tickets`); allTicketsData=await res.json(); renderTickets(); }catch(e){ document.getElementById('tickets-tbody').innerHTML='<tr><td colspan="8" class="text-center py-20 text-red-500">خطأ في الاتصال</td></tr>'; } }
 function filterTickets(s) { currentFilter=s; document.querySelectorAll('.filter-tab').forEach(t=>{t.classList.remove('active','bg-cyan-600','text-white','border-cyan-500');t.classList.add('bg-slate-800','text-slate-300');}); const at=document.getElementById(s==='all'?'tab-all':(s==='مفتوحة'?'tab-open':(s==='مغلق'?'tab-closed':'tab-progress'))); at.classList.remove('bg-slate-800','text-slate-300'); at.classList.add('active','bg-cyan-600','text-white','border-cyan-500'); renderTickets(); }
-function renderTickets() { const tb=document.getElementById('tickets-tbody'); let h=''; allTicketsData.filter(r=>r['رقم التيكت']&&(currentFilter==='all'||(currentFilter==='مفتوحة'&&(r['الحالة (مفتوحة/قيد العمل/مغلقة)']!=='مغلق'&&r['الحالة (مفتوحة/قيد العمل/مغلقة)']!=='قيد العمل'))||r['الحالة (مفتوحة/قيد العمل/مغلقة)']===currentFilter)).forEach(r=>{ const idx=allTicketsData.findIndex(i=>i['رقم التيكت']===r['رقم التيكت']); const s=r['الحالة (مفتوحة/قيد العمل/مغلقة)']; const sb=s==='مغلق'?'<span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/20">مغلق</span>':(s==='قيد العمل'?'<span class="bg-yellow-500/10 text-yellow-400 px-3 py-1 rounded-full text-xs font-bold border border-yellow-500/20">قيد العمل</span>':'<span class="bg-red-500/10 text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-500/20 animate-pulse">مفتوحة</span>'); h+=`<tr class="data-row"><td class="p-4 font-black text-white text-lg">#${r['رقم التيكت']}</td><td class="p-4 text-cyan-300 font-bold">${r['اسم المستخدم']||'-'}</td><td class="p-4 max-w-[200px] truncate" title="${r['مشكله']||''}">${r['مشكله']||'-'}</td><td class="p-4 text-xs font-bold">${r['الفرع']||'-'}</td><td class="p-4 text-xs text-slate-400 font-mono">${r['تاريخ التبليغ']||'-'}</td><td class="p-4 text-xs text-slate-400 font-mono">${r['تاريخ الحل']||'-'}</td><td class="p-4">${sb}</td><td class="p-4 text-center sticky left-0 bg-slate-900 border-r border-slate-700/50 shadow-[-5px_0_10px_rgba(0,0,0,0.3)] z-10"><button onclick="openTicketForm(${idx})" class="bg-slate-700 hover:bg-cyan-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition shadow">تحديث</button></td></tr>`;}); tb.innerHTML=h||'<tr><td colspan="8" class="text-center py-20 text-slate-500">لا توجد تذاكر متطابقة</td></tr>'; }
-function openTicketForm(idx=-1) { if(idx===-1){ document.getElementById('ticket-form-title').innerHTML='<i class="fa-solid fa-plus text-red-500 ml-2"></i>إضافة تذكرة جديدة'; document.getElementById('t-id').value=''; document.getElementById('t-user').value=''; document.getElementById('t-problem').value=''; document.getElementById('t-status').value='مفتوحة'; document.getElementById('t-report').value=new Date().toISOString().split('T')[0]; document.getElementById('t-solve').value=''; document.getElementById('t-reason').value=''; }else{ const r=allTicketsData[idx]; document.getElementById('ticket-form-title').innerHTML='<i class="fa-solid fa-pen text-red-500 ml-2"></i>تعديل التذكرة #' + r['رقم التيكت']; document.getElementById('t-id').value=r['رقم التيكت']; document.getElementById('t-user').value=r['اسم المستخدم']||''; document.getElementById('t-problem').value=r['مشكله']||''; document.getElementById('t-branch').value=r['الفرع']||''; const s=r['الحالة (مفتوحة/قيد العمل/مغلقة)']; document.getElementById('t-status').value=(s==='مغلق'||s==='قيد العمل')?s:'مفتوحة'; const f=d=>d&&d.match(/^\d{4}-\d{2}-\d{2}/)?d.substring(0,10):''; document.getElementById('t-report').value=f(r['تاريخ التبليغ']); document.getElementById('t-solve').value=f(r['تاريخ الحل']); document.getElementById('t-reason').value=r['السبب']||''; } openModal('ticket-form-modal'); }
+
+function renderTickets() { 
+    const tb=document.getElementById('tickets-tbody'); 
+    let h=''; 
+    allTicketsData.filter(r => {
+        // فلتر ذكي لتجاهل الصفوف الوهمية التي لا تحتوي على مشكلة أو مستخدم
+        const userName = (r['اسم المستخدم'] || r['المستخدم'] || '').trim();
+        const problem = (r['مشكله'] || r['المشكلة'] || '').trim();
+        if (!r['رقم التيكت'] || (!userName && !problem)) return false; 
+
+        const s=r['الحالة (مفتوحة/قيد العمل/مغلقة)'] || 'مفتوحة';
+        if (currentFilter === 'all') return true;
+        if (currentFilter === 'مفتوحة') return s !== 'مغلق' && s !== 'قيد العمل';
+        return s === currentFilter;
+    }).forEach(r=>{ 
+        const idx=allTicketsData.findIndex(i=>i['رقم التيكت']===r['رقم التيكت']); 
+        const s=r['الحالة (مفتوحة/قيد العمل/مغلقة)'] || 'مفتوحة'; 
+        const sb=s==='مغلق'?'<span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/20">مغلق</span>':(s==='قيد العمل'?'<span class="bg-yellow-500/10 text-yellow-400 px-3 py-1 rounded-full text-xs font-bold border border-yellow-500/20">قيد العمل</span>':'<span class="bg-red-500/10 text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-500/20 animate-pulse">مفتوحة</span>'); 
+        h+=`<tr class="data-row"><td class="p-4 font-black text-white text-lg">#${r['رقم التيكت']}</td><td class="p-4 text-cyan-300 font-bold">${r['اسم المستخدم']||'-'}</td><td class="p-4 max-w-[200px] truncate" title="${r['مشكله']||''}">${r['مشكله']||'-'}</td><td class="p-4 text-xs font-bold">${r['الفرع']||'-'}</td><td class="p-4 text-xs text-slate-400 font-mono">${r['تاريخ التبليغ']||'-'}</td><td class="p-4 text-xs text-slate-400 font-mono">${r['تاريخ الحل']||'-'}</td><td class="p-4">${sb}</td><td class="p-4 text-center sticky left-0 bg-slate-900 border-r border-slate-700/50 shadow-[-5px_0_10px_rgba(0,0,0,0.3)] z-10"><button onclick="openTicketForm(${idx})" class="bg-slate-700 hover:bg-cyan-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition shadow">تحديث</button></td></tr>`;
+    }); 
+    tb.innerHTML=h||'<tr><td colspan="8" class="text-center py-20 text-slate-500">لا توجد تذاكر متطابقة</td></tr>'; 
+}
+
+function openTicketForm(idx=-1) { 
+    if(idx===-1){ 
+        document.getElementById('ticket-form-title').innerHTML='<i class="fa-solid fa-plus text-red-500 ml-2"></i>إضافة تذكرة جديدة'; 
+        document.getElementById('t-id').value=''; 
+        document.getElementById('t-user').value=''; 
+        document.getElementById('t-problem').value=''; 
+        document.getElementById('t-status').value='مفتوحة'; 
+        document.getElementById('t-report').value=new Date().toISOString().split('T')[0]; 
+        document.getElementById('t-solve').value=''; 
+        document.getElementById('t-reason').value=''; 
+    }else{ 
+        const r=allTicketsData[idx]; 
+        document.getElementById('ticket-form-title').innerHTML='<i class="fa-solid fa-pen text-red-500 ml-2"></i>تعديل التذكرة #' + r['رقم التيكت']; 
+        document.getElementById('t-id').value=r['رقم التيكت']; 
+        document.getElementById('t-user').value=r['اسم المستخدم']||''; 
+        document.getElementById('t-problem').value=r['مشكله']||''; 
+        document.getElementById('t-branch').value=r['الفرع']||''; 
+        const s=r['الحالة (مفتوحة/قيد العمل/مغلقة)']; 
+        document.getElementById('t-status').value=(s==='مغلق'||s==='قيد العمل')?s:'مفتوحة'; 
+        const f=d=>d&&d.match(/^\d{4}-\d{2}-\d{2}/)?d.substring(0,10):''; 
+        document.getElementById('t-report').value=f(r['تاريخ التبليغ']); 
+        document.getElementById('t-solve').value=f(r['تاريخ الحل']); 
+        document.getElementById('t-reason').value=r['السبب']||''; 
+    } 
+    openModal('ticket-form-modal'); 
+}
 
 async function saveTicket() { 
     if(!checkPermission()) return;
@@ -280,7 +327,7 @@ function revokeAsset(index) {
     saveAssetChanges();
 }
 
-// --- 4. سجل الحركات (Logs) ---
+// --- 4. سجل الحركات (Logs) المطور ---
 function openLogsModal() { openModal('logs-modal'); loadLogs(); }
 
 async function loadLogs() {
