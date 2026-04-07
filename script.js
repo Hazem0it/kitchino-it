@@ -266,6 +266,7 @@ async function saveAssetChanges() {
 
 // 4. سجل الحركات (Logs)
 function openLogsModal() { openModal('logs-modal'); loadLogs(); }
+
 async function loadLogs() {
     const tbody = document.getElementById('logs-tbody');
     tbody.innerHTML = '<tr><td colspan="5" class="text-center py-20"><span class="loader"></span> جاري سحب السجل...</td></tr>';
@@ -273,21 +274,29 @@ async function loadLogs() {
         const res = await fetch(`${API_URL}?type=logs`);
         const data = await res.json();
         let html = '';
+        
+        // عكس الترتيب لعرض أحدث حركة في الأعلى
         data.slice().reverse().forEach(r => {
-            if(!r['التاريخ_والوقت']) return;
+            // استخدام Object.values لجلب البيانات بالترتيب (أياً كانت أسماء الأعمدة في الإكسيل)
+            // cols[0] = التاريخ، cols[1] = العملية، cols[2] = السيريال، cols[3] = الموظف، cols[4] = المنفذ
+            const cols = Object.values(r); 
+            
+            if(!cols[0]) return; // تجاهل الصفوف الفارغة
+            
             html += `
-                <tr class="data-row">
-                    <td class="font-mono text-cyan-300 text-xs">${r['التاريخ_والوقت']}</td>
-                    <td class="font-bold text-white"><span class="bg-purple-500/20 text-purple-400 px-2 py-1 rounded">${r['نوع_العملية']}</span></td>
-                    <td class="text-slate-300 text-xs">${r['التفاصيل/السيريال'] || r['السيريال'] || '-'}</td>
-                    <td class="text-slate-300 font-bold">${r['الموظف المستهدف'] || r['اسم_الموظف'] || '-'}</td>
-                    <td class="text-slate-400"><i class="fa-solid fa-user-shield mr-1"></i>${r['المنفذ (Admin)'] || r['المنفذ'] || '-'}</td>
+                <tr class="data-row hover:bg-slate-800/50 transition border-b border-slate-700/50">
+                    <td class="p-4 font-mono text-cyan-300 text-xs">${cols[0] || '-'}</td>
+                    <td class="p-4 font-bold text-white"><span class="bg-purple-500/20 text-purple-400 px-3 py-1 rounded text-xs">${cols[1] || '-'}</span></td>
+                    <td class="p-4 text-slate-300 text-xs">${cols[2] || '-'}</td>
+                    <td class="p-4 text-slate-300 font-bold">${cols[3] || '-'}</td>
+                    <td class="p-4 text-cyan-400 font-bold text-xs"><i class="fa-solid fa-user-shield mr-1"></i>${cols[4] || 'غير معروف'}</td>
                 </tr>`;
         });
         tbody.innerHTML = html || '<tr><td colspan="5" class="text-center py-20 text-slate-500">لا توجد حركات مسجلة</td></tr>';
-    } catch(e) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-20 text-red-500">خطأ في الاتصال بالبيانات</td></tr>'; }
+    } catch(e) { 
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-20 text-red-500">خطأ في الاتصال بالبيانات</td></tr>'; 
+    }
 }
-
 // 5. الشبكات
 function openNetworksModal() { openModal('networks-modal'); loadNetworks(); }
 async function loadNetworks() { document.getElementById('networks-tbody').innerHTML='<tr><td colspan="5" class="text-center py-20"><span class="loader"></span></td></tr>'; try{ const res=await fetch(`${API_URL}?type=networks`); const data=await res.json(); let h=''; data.forEach(r=>{if(!r['اسم الشبكه '])return; h+=`<tr class="data-row"><td class="p-4 font-bold text-white"><i class="fa-solid fa-location-dot text-slate-500 ml-2"></i>${r['فرع']||'-'}</td><td class="p-4 text-cyan-300 font-bold">${r['اسم الشبكه ']||'-'}</td><td class="p-4 text-green-400 font-mono">${r['قوه شبكه  db']||'-'} db</td><td class="p-4 text-xs max-w-[200px] truncate" title="${r['الاجهزه ']}">${r['الاجهزه ']}</td><td class="p-4 font-bold text-center">${r['عدد روتر ']||'-'}</td></tr>`;}); document.getElementById('networks-tbody').innerHTML=h||'<tr><td colspan="5" class="text-center py-20 text-slate-500">لا توجد بيانات</td></tr>'; }catch(e){ document.getElementById('networks-tbody').innerHTML='<tr><td colspan="5" class="text-center py-20 text-red-500">خطأ</td></tr>'; } }
