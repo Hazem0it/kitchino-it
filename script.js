@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbwnNHkVx8dEIfVM1zI9e-g4b77X0egMmbvJTHE6M70YyntQ1SztbzYNpoYU-a32yH5ajg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxLDu6i1TPwYNxpr25Ib3gplvTjgrLdt_RkVDr_1fiPGTRFFlI1Rr0hUtbnew3wHGEGKg/exec';
 
 function normalizeArabic(text) {
     if (!text) return '';
@@ -106,9 +106,16 @@ async function saveTicket() {
     try{ const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(p),headers:{'Content-Type':'text/plain;charset=utf-8'}}); const j=await res.json(); if(j.success){showToast(j.message);closeModal('ticket-form-modal');loadTickets();}else showToast(j.message,true); }catch(e){showToast('خطأ بالاتصال',true);}finally{btn.innerHTML='حفظ';btn.disabled=false;} 
 }
 
-// --- الأصول وتكبير الأعمدة ---
+// --- الأصول وتكبير الأعمدة والفلترة الذكية ---
 let currentAssetsData = [];
-function openAssetsModal() { openModal('assets-modal'); loadBranchData(); document.getElementById('asset-search').value = ''; document.getElementById('status-filter').value = 'all'; }
+
+function openAssetsModal() { 
+    openModal('assets-modal'); 
+    loadBranchData(); 
+    document.getElementById('asset-search').value = ''; 
+    document.getElementById('status-filter').value = 'all'; 
+    document.getElementById('location-filter').value = 'all';
+}
 
 async function loadBranchData() {
     const tbody = document.getElementById('assets-tbody');
@@ -118,6 +125,7 @@ async function loadBranchData() {
         const res = await fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(branch)}`);
         currentAssetsData = await res.json();
         updateDeptDropdown(currentAssetsData);
+        updateLocationDropdown(currentAssetsData);
         renderAssetsTable();
         makeTableResizable(); 
     } catch(e) { tbody.innerHTML = '<tr><td colspan="15" class="text-center py-20 text-red-500">حدث خطأ أثناء الجلب</td></tr>'; }
@@ -130,6 +138,18 @@ function updateDeptDropdown(data) {
     let html = '<option value="all">كل الأقسام</option>';
     uniqueDepts.forEach(dept => { html += `<option value="${dept}">${dept}</option>`; });
     deptSelect.innerHTML = html;
+}
+
+function updateLocationDropdown(data) {
+    const locSelect = document.getElementById('location-filter');
+    const uniqueLocs = new Set();
+    data.forEach(r => { 
+        const loc = (r['Branche \\ Location '] || r['Branche \\ Location'] || '').trim(); 
+        if(loc && loc !== '-') uniqueLocs.add(loc); 
+    });
+    let html = '<option value="all">كل المواقع</option>';
+    uniqueLocs.forEach(loc => { html += `<option value="${loc}">${loc}</option>`; });
+    locSelect.innerHTML = html;
 }
 
 function renderAssetsTable() {
@@ -169,7 +189,7 @@ function renderAssetsTable() {
                 <td class="text-xs text-slate-300 max-w-[350px] truncate" title="${hwRaw}" dir="ltr">${coloredHardware}</td>
                 <td class="text-xs text-slate-300">${r['Printer '] || r['Printer'] || '-'}</td>
                 <td class="text-xs text-slate-300 max-w-[200px] truncate" title="${r['O.S. & Programes'] || ''}">${r['O.S. & Programes'] || '-'}</td>
-                <td class="text-xs text-slate-300">${r['Branche \\ Location '] || r['Branche \\ Location'] || '-'}</td>
+                <td class="text-xs text-slate-300 loc-search-val">${r['Branche \\ Location '] || r['Branche \\ Location'] || '-'}</td>
                 <td class="text-xs font-mono text-yellow-400">${r['pass usb'] || '-'}</td>
                 <td class="text-xs font-mono text-yellow-400">${r['pass win'] || '-'}</td>
                 <td class="text-xs text-slate-300">${r['Phone and serial number'] || '-'}</td>
@@ -184,27 +204,19 @@ function renderAssetsTable() {
     tbody.innerHTML = html || '<tr><td colspan="15" class="text-center py-20 text-slate-500">لا توجد بيانات مسجلة في هذا الفرع</td></tr>';
 }
 
-function revokeAsset(index) {
-    if(!checkPermission()) return;
-    if(!confirm("هل أنت متأكد أنك تريد سحب هذا الجهاز وجعله متوفر؟")) return;
-    document.getElementById('a-old-serial').value = currentAssetsData[index]['Board Serial Number'] || currentAssetsData[index]['سيريال لاب توب'] || '';
-    document.getElementById('a-serial').value = document.getElementById('a-old-serial').value;
-    document.getElementById('a-emp').value = ""; 
-    document.getElementById('a-comp').value = currentAssetsData[index]['Computer Name'] || ''; document.getElementById('a-user').value = currentAssetsData[index]['User Name'] || ''; document.getElementById('a-os').value = currentAssetsData[index]['O.S'] || ''; document.getElementById('a-model').value = currentAssetsData[index]['Model'] || ''; document.getElementById('a-hard').value = currentAssetsData[index]['Hardware'] || currentAssetsData[index]['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = currentAssetsData[index]['Printer '] || currentAssetsData[index]['Printer'] || ''; document.getElementById('a-prog').value = currentAssetsData[index]['O.S. & Programes'] || ''; document.getElementById('a-loc').value = currentAssetsData[index]['Branche \\ Location '] || currentAssetsData[index]['Branche \\ Location'] || ''; document.getElementById('a-usb').value = currentAssetsData[index]['pass usb'] || ''; document.getElementById('a-win').value = currentAssetsData[index]['pass win'] || ''; document.getElementById('a-phone').value = currentAssetsData[index]['Phone and serial number'] || '';
-    saveAssetChanges();
-}
-
 function searchAssets() {
     const inputRaw = document.getElementById('asset-search').value.toLowerCase();
     const input = normalizeArabic(inputRaw);
     const deptFilter = document.getElementById('dept-filter').value;
     const statusFilter = document.getElementById('status-filter').value;
+    const locFilter = document.getElementById('location-filter').value;
     const rows = document.querySelectorAll('.asset-row');
     
     rows.forEach(row => {
         const empNameRaw = row.querySelector('.emp-search-val').textContent.toLowerCase();
         const serialRaw = row.querySelector('.serial-search-val').textContent.toLowerCase();
         const osVal = row.querySelector('.os-search-val').textContent.trim();
+        const locVal = row.querySelector('.loc-search-val').textContent.trim();
         const statusVal = row.getAttribute('data-status');
         
         const empName = normalizeArabic(empNameRaw);
@@ -213,8 +225,9 @@ function searchAssets() {
         const matchesText = empName.includes(input) || serial.includes(input);
         const matchesDept = (deptFilter === 'all' || osVal === deptFilter);
         const matchesStatus = (statusFilter === 'all' || statusVal === statusFilter);
+        const matchesLoc = (locFilter === 'all' || locVal === locFilter);
         
-        row.style.display = (matchesText && matchesDept && matchesStatus) ? "" : "none";
+        row.style.display = (matchesText && matchesDept && matchesStatus && matchesLoc) ? "" : "none";
     });
 }
 
@@ -257,7 +270,17 @@ async function saveAssetChanges() {
     try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); const json = await res.json(); if(json.success) { showToast('تم الحفظ بنجاح!'); closeModal('asset-edit-modal'); loadBranchData(); } else showToast(json.message, true); } catch(e) { showToast('خطأ بالاتصال', true); } finally { btn.innerHTML = 'حفظ البيانات'; btn.disabled = false; }
 }
 
-// --- 4. سجل الحركات (Logs) المطور ---
+function revokeAsset(index) {
+    if(!checkPermission()) return;
+    if(!confirm("هل أنت متأكد أنك تريد سحب هذا الجهاز وجعله متوفر؟")) return;
+    document.getElementById('a-old-serial').value = currentAssetsData[index]['Board Serial Number'] || currentAssetsData[index]['سيريال لاب توب'] || '';
+    document.getElementById('a-serial').value = document.getElementById('a-old-serial').value;
+    document.getElementById('a-emp').value = ""; 
+    document.getElementById('a-comp').value = currentAssetsData[index]['Computer Name'] || ''; document.getElementById('a-user').value = currentAssetsData[index]['User Name'] || ''; document.getElementById('a-os').value = currentAssetsData[index]['O.S'] || ''; document.getElementById('a-model').value = currentAssetsData[index]['Model'] || ''; document.getElementById('a-hard').value = currentAssetsData[index]['Hardware'] || currentAssetsData[index]['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = currentAssetsData[index]['Printer '] || currentAssetsData[index]['Printer'] || ''; document.getElementById('a-prog').value = currentAssetsData[index]['O.S. & Programes'] || ''; document.getElementById('a-loc').value = currentAssetsData[index]['Branche \\ Location '] || currentAssetsData[index]['Branche \\ Location'] || ''; document.getElementById('a-usb').value = currentAssetsData[index]['pass usb'] || ''; document.getElementById('a-win').value = currentAssetsData[index]['pass win'] || ''; document.getElementById('a-phone').value = currentAssetsData[index]['Phone and serial number'] || '';
+    saveAssetChanges();
+}
+
+// --- 4. سجل الحركات (Logs) ---
 function openLogsModal() { openModal('logs-modal'); loadLogs(); }
 
 async function loadLogs() {
