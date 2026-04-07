@@ -1,4 +1,86 @@
-<div id="ticket-form-modal" class="fixed inset-0 bg-black/90 z-[60] hidden opacity-0 transition-opacity flex items-center justify-center p-4">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Operations Center | Kitchino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="relative min-h-screen bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+
+    <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-xl shadow-2xl z-[9999] opacity-0 transition-opacity duration-300 flex items-center gap-3 pointer-events-none border border-white/20"><i class="fa-solid fa-circle-check text-xl"></i> <span id="toast-msg" class="font-bold">تم بنجاح</span></div>
+
+    <div id="login-view" class="fixed inset-0 z-[100] bg-slate-900 flex items-center justify-center p-4 transition-opacity duration-500">
+        <div class="glass-panel p-10 rounded-3xl w-full max-w-md text-center relative overflow-hidden border border-slate-700">
+            <div class="absolute -top-20 -right-20 w-40 h-40 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+            <div class="relative z-10">
+                <div class="bg-slate-800 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-cyan-500 shadow-[0_0_30px_rgba(34,211,238,0.3)]"><i class="fa-solid fa-fingerprint text-4xl text-cyan-400"></i></div>
+                <h1 class="text-3xl font-extrabold text-white mb-2">تسجيل الدخول</h1>
+                <div class="space-y-5 mt-8">
+                    <div class="relative"><i class="fa-solid fa-user absolute right-4 top-1/2 transform -translate-y-1/2 text-cyan-500"></i><input type="text" id="login-user" placeholder="اسم المستخدم" class="w-full bg-slate-900/80 border border-slate-700 text-white rounded-xl py-3 pr-12 pl-4 focus:outline-none focus:border-cyan-500 transition shadow-inner"></div>
+                    <div class="relative"><i class="fa-solid fa-lock absolute right-4 top-1/2 transform -translate-y-1/2 text-cyan-500"></i><input type="password" id="login-pass" placeholder="كلمة المرور" class="w-full bg-slate-900/80 border border-slate-700 text-white rounded-xl py-3 pr-12 pl-4 focus:outline-none focus:border-cyan-500 transition shadow-inner" onkeypress="if(event.key === 'Enter') handleLogin()"></div>
+                </div>
+                <button onclick="handleLogin()" class="w-full mt-8 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3.5 rounded-xl shadow-[0_0_20px_rgba(8,145,178,0.4)] transition-all flex justify-center items-center gap-2">دخول للنظام <i class="fa-solid fa-arrow-left"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-dashboard" class="hidden p-4 md:p-8 relative">
+        <header class="flex justify-between items-center mb-10 bg-slate-800/80 p-6 rounded-2xl border border-slate-700 shadow-xl backdrop-blur-md">
+            <div><h1 class="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 tracking-tight">IT Operations Center</h1></div>
+            <div class="flex items-center gap-6">
+                <button onclick="openSettingsModal()" class="text-slate-400 hover:text-cyan-400 transition-colors bg-slate-900 p-3 rounded-full border border-slate-700 hover:border-cyan-500"><i class="fa-solid fa-gear text-xl"></i></button>
+                <div class="h-10 w-px bg-slate-700"></div>
+                <div class="flex items-center gap-3 cursor-pointer group" onclick="logout()">
+                    <div class="text-right hidden md:block"><p class="font-bold text-sm text-white" id="display-user-name">Admin</p><p class="text-xs text-cyan-400" id="display-user-role">Role</p></div>
+                    <div class="bg-slate-700 border border-slate-600 p-3 rounded-full group-hover:bg-red-500/20 transition"><i class="fa-solid fa-power-off text-white group-hover:text-red-500 transition"></i></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <div onclick="openTicketsModal()" class="glass-card glass-btn p-6 border-t-4 border-t-red-500 flex flex-col items-center justify-center text-center group"><div class="bg-red-500/10 p-4 rounded-full mb-3 group-hover:scale-110 transition"><i class="fa-solid fa-headset text-3xl text-red-500"></i></div><h3 class="text-slate-400 font-bold">تذاكر الأعطال</h3></div>
+            <div onclick="openAssetsModal()" class="glass-card glass-btn p-6 border-t-4 border-t-cyan-400 flex flex-col items-center justify-center text-center group"><div class="bg-cyan-500/10 p-4 rounded-full mb-3 group-hover:scale-110 transition"><i class="fa-solid fa-laptop-code text-3xl text-cyan-400"></i></div><h3 class="text-slate-400 font-bold">الأجهزة والعُهد</h3></div>
+            <div onclick="openNetworksModal()" class="glass-card glass-btn p-6 border-t-4 border-t-green-500 flex flex-col items-center justify-center text-center group"><div class="bg-green-500/10 p-4 rounded-full mb-3 group-hover:scale-110 transition"><i class="fa-solid fa-network-wired text-3xl text-green-500"></i></div><h3 class="text-slate-400 font-bold">الشبكات والروترات</h3></div>
+            <div onclick="openLogsModal()" class="glass-card glass-btn p-6 border-t-4 border-t-purple-500 flex flex-col items-center justify-center text-center group"><div class="bg-purple-500/10 p-4 rounded-full mb-3 group-hover:scale-110 transition"><i class="fa-solid fa-clock-rotate-left text-3xl text-purple-500"></i></div><h3 class="text-slate-400 font-bold">سجل الحركات (Log)</h3></div>
+        </div>
+    </div>
+
+    <div id="logs-modal" class="fixed inset-0 modal-overlay z-[70] hidden opacity-0 transition-opacity duration-300 flex justify-center items-center p-4">
+        <div class="bg-slate-900 w-full max-w-6xl h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-slate-700">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/80"><h2 class="text-2xl font-bold text-white"><i class="fa-solid fa-clock-rotate-left text-purple-500 ml-2"></i>سجل حركات النظام</h2><button onclick="closeModal('logs-modal')" class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-xmark text-3xl"></i></button></div>
+            <div class="flex-1 overflow-auto p-6"><table class="w-full text-left text-sm" dir="rtl"><thead class="sticky top-0 bg-slate-900 z-10 shadow-md"><tr><th>التاريخ والوقت</th><th>نوع العملية</th><th>التفاصيل/السيريال</th><th>الموظف المستهدف</th><th>المنفذ</th></tr></thead><tbody id="logs-tbody" class="text-slate-300"></tbody></table></div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="fixed inset-0 modal-overlay z-[80] hidden opacity-0 transition-opacity duration-300 flex justify-center items-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/80"><h2 class="text-2xl font-bold text-white"><i class="fa-solid fa-users-gear text-cyan-500 ml-2"></i>إدارة الحسابات والصلاحيات</h2><button onclick="closeModal('settings-modal')" class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-xmark text-3xl"></i></button></div>
+            <div class="p-6 flex-1 overflow-auto bg-slate-900/50">
+                <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl mb-8 shadow-inner">
+                    <h3 class="text-lg font-bold text-white mb-4"><i class="fa-solid fa-user-plus text-green-400 ml-2"></i>إضافة مستخدم جديد</h3>
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <input type="text" id="new-username" placeholder="اسم المستخدم" class="flex-1 bg-slate-900 border border-slate-600 rounded-lg p-3 text-white outline-none focus:border-cyan-500"><input type="password" id="new-password" placeholder="كلمة المرور" class="flex-1 bg-slate-900 border border-slate-600 rounded-lg p-3 text-white outline-none focus:border-cyan-500">
+                        <select id="new-role" class="bg-slate-900 border border-slate-600 rounded-lg p-3 text-white outline-none"><option value="Admin">Admin</option><option value="Viewer">Viewer (مشاهدة فقط)</option></select><button onclick="addUser()" class="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-lg">إضافة</button>
+                    </div>
+                </div>
+                <table class="w-full text-left text-sm" dir="rtl"><thead class="bg-slate-800"><tr><th class="p-4">المستخدم</th><th class="p-4">الصلاحية</th><th class="p-4">كلمة المرور</th><th class="p-4 text-center">إجراء</th></tr></thead><tbody id="users-tbody"></tbody></table>
+            </div>
+        </div>
+    </div>
+
+    <div id="tickets-modal" class="fixed inset-0 modal-overlay z-50 hidden opacity-0 transition-opacity duration-300 flex justify-center items-center p-4">
+        <div class="bg-slate-900 w-full max-w-[95vw] h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-slate-700">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center"><div class="flex items-center gap-6"><h2 class="text-2xl font-bold text-white"><i class="fa-solid fa-headset text-red-500 ml-2"></i>الأعطال</h2><button onclick="openTicketForm(-1)" class="bg-red-600 text-white px-5 py-2.5 rounded-lg font-bold"><i class="fa-solid fa-plus"></i> تذكرة جديدة</button></div><button onclick="closeModal('tickets-modal')" class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-xmark text-3xl"></i></button></div>
+            <div class="bg-slate-900 p-4 border-b border-slate-800 flex gap-3"><button onclick="filterTickets('all')" id="tab-all" class="filter-tab active bg-cyan-600 text-white px-6 py-2 rounded-lg text-sm border border-cyan-500">الكل</button><button onclick="filterTickets('مفتوحة')" id="tab-open" class="filter-tab bg-slate-800 text-slate-300 px-6 py-2 rounded-lg text-sm">مفتوحة</button><button onclick="filterTickets('مغلق')" id="tab-closed" class="filter-tab bg-slate-800 text-slate-300 px-6 py-2 rounded-lg text-sm">مغلقة</button></div>
+            <div class="flex-1 overflow-auto p-6"><table class="w-full text-left text-sm" dir="rtl"><thead class="sticky top-0 bg-slate-900 z-10"><tr><th>رقم</th><th>المستخدم</th><th>المشكلة</th><th>الفرع</th><th>تاريخ الحل</th><th>الحالة</th><th class="text-center sticky left-0 bg-slate-900 z-20 shadow-[-5px_0_10px_rgba(0,0,0,0.3)]">إجراء</th></tr></thead><tbody id="tickets-tbody"></tbody></table></div>
+        </div>
+    </div>
+
+    <div id="ticket-form-modal" class="fixed inset-0 bg-black/90 z-[60] hidden opacity-0 transition-opacity flex items-center justify-center p-4">
         <div class="bg-slate-800 border border-slate-600 p-8 rounded-2xl w-full max-w-4xl shadow-2xl">
             <h2 id="ticket-form-title" class="text-2xl font-bold text-white mb-6 border-b border-slate-700 pb-4">التذكرة</h2><input type="hidden" id="t-id">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -32,3 +114,56 @@
             <div class="flex gap-4 mt-8"><button onclick="saveTicket()" id="save-ticket-btn" class="flex-1 bg-red-600 hover:bg-red-500 text-white py-3.5 rounded-xl font-bold transition">حفظ التذكرة</button><button onclick="closeModal('ticket-form-modal')" class="w-40 bg-slate-700 hover:bg-slate-600 text-white py-3.5 rounded-xl font-bold transition">إلغاء</button></div>
         </div>
     </div>
+
+    <div id="assets-modal" class="fixed inset-0 modal-overlay z-50 hidden opacity-0 transition-opacity duration-300 flex justify-center items-center p-4">
+        <div class="bg-slate-900 w-full max-w-[98vw] h-[95vh] flex flex-col rounded-2xl shadow-2xl border border-slate-700">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/80">
+                <div class="flex gap-3 items-center flex-wrap w-full md:w-auto">
+                    <h2 class="text-2xl font-bold text-white ml-2"><i class="fa-solid fa-laptop-code text-cyan-400 ml-2"></i>الأصول</h2>
+                    <button onclick="openAssetEdit(-1)" class="bg-cyan-600 text-white px-4 py-2 rounded-lg font-bold ml-2"><i class="fa-solid fa-plus"></i> إضافة جهاز</button>
+                    
+                    <div class="relative"><input type="text" id="asset-search" onkeyup="searchAssets()" placeholder="بحث (الاسم/السيريال)..." class="bg-slate-900 border border-slate-600 text-white rounded-lg px-4 py-2 pl-10 outline-none w-56 text-sm"><i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i></div>
+                    
+                    <select id="status-filter" onchange="searchAssets()" class="bg-slate-900 border border-slate-600 text-white rounded-lg px-4 py-2 outline-none w-32"><option value="all">الكل</option><option value="available">أجهزة متوفرة</option><option value="inuse">في عهدة</option></select>
+                    
+                    <select id="dept-filter" onchange="searchAssets()" class="bg-slate-900 border border-slate-600 text-white rounded-lg px-4 py-2 outline-none w-32"><option value="all">كل الأقسام</option></select>
+                    
+                    <select id="location-filter" onchange="searchAssets()" class="bg-slate-900 border border-purple-500/50 text-white rounded-lg px-4 py-2 outline-none w-32">
+                        <option value="all">كل المواقع</option>
+                    </select>
+
+                    <select id="branch-select" onchange="loadBranchData()" class="bg-slate-900 border border-cyan-500/50 text-white font-bold rounded-lg px-4 py-2 outline-none cursor-pointer">
+                        <option value="kitchino">Kitchino</option>
+                        <option value="milark">Milark</option>
+                        <option value="فرع زايد">فرع زايد</option>
+                        <option value="caventa">Caventa</option>
+                        <option value="ASSISTO-TROLLY-Katamya">ASSISTO-TROLLY-Katamya</option>
+                    </select>
+                </div>
+                <button onclick="closeModal('assets-modal')" class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-xmark text-3xl"></i></button>
+            </div>
+            <div class="flex-1 overflow-auto p-6"><table id="assets-table" class="w-full text-left text-sm whitespace-nowrap" dir="rtl"><thead class="sticky top-0 bg-slate-900 z-10"><tr><th>م</th><th>الموظف/الحالة</th><th>Computer Name</th><th class="text-cyan-400">Board Serial Number</th><th>User Name</th><th>القسم/الوظيفة</th><th>Model</th><th>Hardware</th><th>Printer</th><th>O.S. & Programes</th><th>Location</th><th>pass usb</th><th>pass win</th><th>Phone & serial</th><th class="text-center sticky left-0 bg-slate-900 z-20 shadow-[-5px_0_10px_rgba(0,0,0,0.3)]">إجراء</th></tr></thead><tbody id="assets-tbody" class="text-slate-300"></tbody></table></div>
+        </div>
+    </div>
+
+    <div id="asset-edit-modal" class="fixed inset-0 bg-black/90 z-[70] hidden opacity-0 transition-opacity flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-cyan-500/50 p-6 rounded-2xl w-full max-w-5xl shadow-2xl relative max-h-[95vh] overflow-y-auto">
+            <h2 id="asset-form-title" class="text-2xl font-bold text-white mb-6 border-b border-slate-700 pb-3">بيانات الجهاز</h2>
+            <input type="hidden" id="a-old-serial">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div class="md:col-span-1"><label class="block text-cyan-400 text-xs font-bold mb-1">Board Serial Number *</label><input type="text" id="a-serial" class="w-full bg-slate-900 border border-cyan-500/30 text-white rounded-lg p-3 font-mono outline-none"></div><div class="md:col-span-2"><label class="block text-slate-400 text-xs font-bold mb-1">اسم الموظف (لجهاز متوفر اتركها فارغة)</label><input type="text" id="a-emp" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 outline-none"></div><div><label class="block text-slate-400 text-xs font-bold mb-1">Computer Name</label><input type="text" id="a-comp" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 outline-none"></div><div><label class="block text-slate-400 text-xs font-bold mb-1">User Name</label><input type="text" id="a-user" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 outline-none"></div><div><label class="block text-slate-400 text-xs font-bold mb-1">O.S (الوظيفة)</label><input type="text" id="a-os" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 outline-none"></div><div><label class="block text-slate-400 text-xs font-bold mb-1">Branche \ Location</label><input type="text" id="a-loc" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 outline-none"></div><div><label class="block text-slate-400 text-xs font-bold mb-1">pass usb</label><input type="text" id="a-usb" class="w-full bg-slate-900 border border-slate-700 text-yellow-400 font-mono rounded-lg p-3 outline-none"></div><div><label class="block text-slate-400 text-xs font-bold mb-1">pass win</label><input type="text" id="a-win" class="w-full bg-slate-900 border border-slate-700 text-yellow-400 font-mono rounded-lg p-3 outline-none"></div><div class="md:col-span-3"><label class="block text-slate-400 text-xs font-bold mb-1">Phone and serial number</label><input type="text" id="a-phone" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 outline-none"></div><div class="md:col-span-3"><label class="block text-slate-400 text-xs font-bold mb-1">Model</label><input type="text" id="a-model" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 outline-none"></div><div class="md:col-span-3"><label class="block text-slate-400 text-xs font-bold mb-1">Hardware</label><textarea id="a-hard" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 outline-none" rows="2"></textarea></div><div class="md:col-span-3"><label class="block text-slate-400 text-xs font-bold mb-1">Printer</label><input type="text" id="a-print" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 outline-none"></div><div class="md:col-span-3"><label class="block text-slate-400 text-xs font-bold mb-1">O.S. & Programes</label><textarea id="a-prog" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 outline-none" rows="2"></textarea></div>
+            </div>
+            <div class="flex gap-4 mt-6"><button id="save-asset-btn" onclick="saveAssetChanges()" class="w-2/3 bg-cyan-600 hover:bg-cyan-500 text-white py-3 rounded-xl font-bold">حفظ البيانات</button><button onclick="closeModal('asset-edit-modal')" class="w-1/3 bg-slate-700 text-white py-3 rounded-xl font-bold">إلغاء</button></div>
+        </div>
+    </div>
+
+    <div id="networks-modal" class="fixed inset-0 modal-overlay z-50 hidden opacity-0 transition-opacity flex justify-center items-center p-4">
+        <div class="bg-slate-900 w-full max-w-5xl h-[85vh] flex flex-col rounded-2xl border border-slate-700 shadow-2xl">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center"><h2 class="text-2xl font-bold text-white"><i class="fa-solid fa-network-wired text-green-500 ml-2"></i>الشبكات</h2><button onclick="closeModal('networks-modal')" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark text-3xl"></i></button></div>
+            <div class="flex-1 overflow-auto p-6"><table class="w-full text-left text-sm" dir="rtl"><thead class="sticky top-0 bg-slate-900"><tr><th>الفرع</th><th>اسم الشبكة</th><th>الإشارة (db)</th><th>الأجهزة المتصلة</th><th>عدد الروترات</th></tr></thead><tbody id="networks-tbody"></tbody></table></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
