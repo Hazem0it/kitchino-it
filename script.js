@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbyuz1YEiconjtm4Cz8KT9-D91tYVPqA_uJ0QVnf5mH5P3zeELjbsYRK6kYPBzinqHlb3Q/exec'
+const API_URL = 'https://script.google.com/macros/s/AKfycbyuz1YEiconjtm4Cz8KT9-D91tYVPqA_uJ0QVnf5mH5P3zeELjbsYRK6kYPBzinqHlb3Q/exec';
 function normalizeArabic(text) {
     if (!text) return '';
     return text.replace(/[أإآا]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ً|ٌ|ٍ|َ|ُ|ِ|ّ|ْ/g, '');
