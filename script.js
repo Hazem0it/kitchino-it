@@ -1,5 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbwVUyW77Hfawciw7M06j7TpHX8EGvVovlZJZqrLsDMLMvDW4NqpCglpC2E8Y8wDtd6GRA/exec';
-
+const API_URL = 'https://script.google.com/macros/s/AKfycbyuz1YEiconjtm4Cz8KT9-D91tYVPqA_uJ0QVnf5mH5P3zeELjbsYRK6kYPBzinqHlb3Q/exec'
 function normalizeArabic(text) {
     if (!text) return '';
     return text.replace(/[أإآا]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ً|ٌ|ٍ|َ|ُ|ِ|ّ|ْ/g, '');
@@ -9,12 +8,11 @@ function normalizeArabic(text) {
 let usersDB = [
     { username: 'hazem', pass: '12345', role: 'Admin' },
     { username: 'admin', pass: '12345', role: 'Admin' },
-    { username: 'viewer', pass: '12345', role: 'Viewer' } // أضفنا يوزر مشاهدة للتجربة
+    { username: 'viewer', pass: '12345', role: 'Viewer' }
 ];
 let currentUserRole = ''; 
 let inactivityTimer;
 
-// التحقق عند تحميل الصفحة
 window.addEventListener('DOMContentLoaded', () => {
     const savedUser = localStorage.getItem('kitchino_user');
     if(savedUser) {
@@ -38,16 +36,18 @@ function startInactivityTimer() {
 
 function resetTimer() {
     clearTimeout(inactivityTimer);
-    inactivityTimer = setTimeout(logout, 10 * 60 * 1000); // 10 دقائق (600,000 ملي ثانية)
+    inactivityTimer = setTimeout(logout, 10 * 60 * 1000); // 10 دقائق 
 }
 
 function handleLogin() { 
     const u = document.getElementById('login-user').value.trim().toLowerCase();
-    const p = document.getElementById('login-pass').value; 
+    // تم إضافة .trim() لمسح أي مسافات خاطئة في الباسورد
+    const p = document.getElementById('login-pass').value.trim(); 
+    
     const v = usersDB.find(x => x.username.toLowerCase() === u && x.pass === p); 
     if(v) {
         currentUserRole = v.role; 
-        localStorage.setItem('kitchino_user', JSON.stringify(v)); // حفظ الجلسة
+        localStorage.setItem('kitchino_user', JSON.stringify(v)); 
         document.getElementById('login-view').classList.add('opacity-0');
         setTimeout(() => {
             document.getElementById('login-view').classList.add('hidden');
@@ -196,7 +196,7 @@ function revokeAsset(index) {
     if(!confirm("هل أنت متأكد أنك تريد سحب هذا الجهاز وجعله متوفر؟")) return;
     document.getElementById('a-old-serial').value = currentAssetsData[index]['Board Serial Number'] || currentAssetsData[index]['سيريال لاب توب'] || '';
     document.getElementById('a-serial').value = document.getElementById('a-old-serial').value;
-    document.getElementById('a-emp').value = ""; // تفريغ الاسم
+    document.getElementById('a-emp').value = ""; 
     document.getElementById('a-comp').value = currentAssetsData[index]['Computer Name'] || ''; document.getElementById('a-user').value = currentAssetsData[index]['User Name'] || ''; document.getElementById('a-os').value = currentAssetsData[index]['O.S'] || ''; document.getElementById('a-model').value = currentAssetsData[index]['Model'] || ''; document.getElementById('a-hard').value = currentAssetsData[index]['Hardware'] || currentAssetsData[index]['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = currentAssetsData[index]['Printer '] || currentAssetsData[index]['Printer'] || ''; document.getElementById('a-prog').value = currentAssetsData[index]['O.S. & Programes'] || ''; document.getElementById('a-loc').value = currentAssetsData[index]['Branche \\ Location '] || currentAssetsData[index]['Branche \\ Location'] || ''; document.getElementById('a-usb').value = currentAssetsData[index]['pass usb'] || ''; document.getElementById('a-win').value = currentAssetsData[index]['pass win'] || ''; document.getElementById('a-phone').value = currentAssetsData[index]['Phone and serial number'] || '';
     saveAssetChanges();
 }
@@ -264,7 +264,7 @@ async function saveAssetChanges() {
     try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); const json = await res.json(); if(json.success) { showToast('تم الحفظ بنجاح!'); closeModal('asset-edit-modal'); loadBranchData(); } else showToast(json.message, true); } catch(e) { showToast('خطأ بالاتصال', true); } finally { btn.innerHTML = 'حفظ البيانات'; btn.disabled = false; }
 }
 
-// 4. سجل الحركات (Logs)
+// --- 4. سجل الحركات (Logs) المطور لتجنب أسماء الأعمدة ---
 function openLogsModal() { openModal('logs-modal'); loadLogs(); }
 
 async function loadLogs() {
@@ -297,6 +297,7 @@ async function loadLogs() {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center py-20 text-red-500">خطأ في الاتصال بالبيانات</td></tr>'; 
     }
 }
+
 // 5. الشبكات
 function openNetworksModal() { openModal('networks-modal'); loadNetworks(); }
 async function loadNetworks() { document.getElementById('networks-tbody').innerHTML='<tr><td colspan="5" class="text-center py-20"><span class="loader"></span></td></tr>'; try{ const res=await fetch(`${API_URL}?type=networks`); const data=await res.json(); let h=''; data.forEach(r=>{if(!r['اسم الشبكه '])return; h+=`<tr class="data-row"><td class="p-4 font-bold text-white"><i class="fa-solid fa-location-dot text-slate-500 ml-2"></i>${r['فرع']||'-'}</td><td class="p-4 text-cyan-300 font-bold">${r['اسم الشبكه ']||'-'}</td><td class="p-4 text-green-400 font-mono">${r['قوه شبكه  db']||'-'} db</td><td class="p-4 text-xs max-w-[200px] truncate" title="${r['الاجهزه ']}">${r['الاجهزه ']}</td><td class="p-4 font-bold text-center">${r['عدد روتر ']||'-'}</td></tr>`;}); document.getElementById('networks-tbody').innerHTML=h||'<tr><td colspan="5" class="text-center py-20 text-slate-500">لا توجد بيانات</td></tr>'; }catch(e){ document.getElementById('networks-tbody').innerHTML='<tr><td colspan="5" class="text-center py-20 text-red-500">خطأ</td></tr>'; } }
