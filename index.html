@@ -217,9 +217,62 @@
     </div>
 
     <div id="networks-modal" class="fixed inset-0 modal-overlay z-50 hidden opacity-0 transition-opacity flex justify-center items-center p-4">
-        <div class="bg-slate-900 w-full max-w-5xl h-[85vh] flex flex-col rounded-2xl border border-slate-700 shadow-2xl">
-            <div class="p-6 border-b border-slate-800 flex justify-between items-center"><h2 class="text-2xl font-bold text-white"><i class="fa-solid fa-network-wired text-green-500 ml-2"></i>الشبكات</h2><button onclick="closeModal('networks-modal')" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark text-3xl"></i></button></div>
-            <div class="flex-1 overflow-auto p-6"><table class="w-full text-left text-sm" dir="rtl"><thead class="sticky top-0 bg-slate-900"><tr><th class="text-center">الفرع</th><th class="text-center">اسم الشبكة</th><th class="text-center">الإشارة (db)</th><th class="text-center">الأجهزة المتصلة</th><th class="text-center">عدد الروترات</th></tr></thead><tbody id="networks-tbody"></tbody></table></div>
+        <div class="bg-slate-900 w-full max-w-[98vw] h-[95vh] flex flex-col rounded-2xl border border-slate-700 shadow-2xl">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/80">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-2xl font-bold text-white"><i class="fa-solid fa-network-wired text-green-500 ml-2"></i>إدارة الشبكات والروترات</h2>
+                    <button onclick="openNetworkForm(-1)" class="bg-green-600 hover:bg-green-500 transition text-white px-4 py-2 rounded-lg font-bold"><i class="fa-solid fa-plus"></i> إضافة خط/شبكة</button>
+                    <div class="relative"><input type="text" id="network-search" onkeyup="searchNetworks()" placeholder="بحث (الفرع/التليفون/IP)..." class="bg-slate-900 border border-slate-600 text-white rounded-lg px-4 py-2 pl-10 outline-none w-64 text-sm"><i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i></div>
+                </div>
+                <button onclick="closeModal('networks-modal')" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark text-3xl"></i></button>
+            </div>
+            <div class="flex-1 overflow-auto p-4">
+                <table class="w-full text-left text-sm whitespace-nowrap" dir="rtl" id="networks-table">
+                    <thead class="sticky top-0 bg-slate-900 z-10">
+                        <tr>
+                            <th class="text-center text-slate-300">الفرع / الموقع</th>
+                            <th class="text-center text-cyan-400">رقم التليفون</th>
+                            <th class="text-center">المهمة</th>
+                            <th class="text-center text-yellow-400">تاريخ التجديد</th>
+                            <th class="text-center text-green-400">IP Router</th>
+                            <th class="text-center">Pass Router</th>
+                            <th class="text-center text-purple-400">Name WiFi</th>
+                            <th class="text-center">Pass WiFi</th>
+                            <th class="text-center text-pink-400">Pass WE Apps</th>
+                            <th class="text-center">قوة الشبكة</th>
+                            <th class="text-center sticky left-0 bg-slate-900 shadow-[-5px_0_10px_rgba(0,0,0,0.3)]">إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="networks-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="network-form-modal" class="fixed inset-0 bg-black/90 z-[60] hidden opacity-0 transition-opacity flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-green-500/50 p-8 rounded-2xl w-full max-w-4xl shadow-2xl relative max-h-[95vh] overflow-y-auto">
+            <h2 id="network-form-title" class="text-2xl font-bold text-white mb-6 border-b border-slate-700 pb-3">بيانات الشبكة</h2>
+            <input type="hidden" id="n-old-ip">
+            <input type="hidden" id="n-old-phone">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div class="md:col-span-3 border-b border-slate-700 pb-2 mb-2"><h3 class="text-green-400 font-bold"><i class="fa-solid fa-location-dot"></i> بيانات الخط والموقع</h3></div>
+                <div><label class="block text-slate-400 text-xs font-bold mb-1">الفرع (مثال: المقر kitchino)</label><input type="text" id="n-branch" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 outline-none"></div>
+                <div><label class="block text-cyan-400 text-xs font-bold mb-1">أرقام التليفون الأرضي</label><input type="text" id="n-phone" class="w-full bg-slate-900 border border-cyan-500/30 text-white font-mono rounded-lg p-3 outline-none"></div>
+                <div><label class="block text-slate-400 text-xs font-bold mb-1">المهمة (مثال: net/hotline)</label><input type="text" id="n-task" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 outline-none"></div>
+                <div><label class="block text-yellow-400 text-xs font-bold mb-1">تاريخ التجديد</label><input type="text" id="n-date" placeholder="DD/MM/YYYY" class="w-full bg-slate-900 border border-slate-700 text-white font-mono rounded-lg p-3 outline-none"></div>
+
+                <div class="md:col-span-3 border-b border-slate-700 pb-2 mb-2 mt-4"><h3 class="text-cyan-400 font-bold"><i class="fa-solid fa-server"></i> إعدادات الروتر</h3></div>
+                <div><label class="block text-green-400 text-xs font-bold mb-1">IP Router</label><input type="text" id="n-ip" class="w-full bg-slate-900 border border-slate-700 text-green-300 font-mono rounded-lg p-3 outline-none" dir="ltr"></div>
+                <div><label class="block text-slate-400 text-xs font-bold mb-1">Pass Router</label><input type="text" id="n-passrouter" class="w-full bg-slate-900 border border-slate-700 text-white font-mono rounded-lg p-3 outline-none"></div>
+                
+                <div class="md:col-span-3 border-b border-slate-700 pb-2 mb-2 mt-4"><h3 class="text-purple-400 font-bold"><i class="fa-solid fa-wifi"></i> إعدادات الـ WiFi والتطبيقات</h3></div>
+                <div><label class="block text-purple-400 text-xs font-bold mb-1">Name WiFi</label><input type="text" id="n-wifiname" class="w-full bg-slate-900 border border-slate-700 text-white font-bold rounded-lg p-3 outline-none"></div>
+                <div><label class="block text-slate-400 text-xs font-bold mb-1">Pass WiFi</label><input type="text" id="n-wifipass" class="w-full bg-slate-900 border border-slate-700 text-yellow-400 font-mono rounded-lg p-3 outline-none"></div>
+                <div><label class="block text-pink-400 text-xs font-bold mb-1">Pass WE Apps</label><input type="text" id="n-weapps" class="w-full bg-slate-900 border border-slate-700 text-white font-mono rounded-lg p-3 outline-none"></div>
+                <div><label class="block text-slate-400 text-xs font-bold mb-1">قوة الشبكة db (اختياري)</label><input type="text" id="n-db" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 outline-none"></div>
+            </div>
+            <div class="flex gap-4 mt-8"><button id="save-network-btn" onclick="saveNetwork()" class="flex-1 bg-green-600 hover:bg-green-500 text-white py-3.5 rounded-xl font-bold transition">حفظ الشبكة</button><button onclick="closeModal('network-form-modal')" class="w-40 bg-slate-700 hover:bg-slate-600 text-white py-3.5 rounded-xl font-bold transition">إلغاء</button></div>
         </div>
     </div>
 
