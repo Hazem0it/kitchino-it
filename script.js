@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbxLDu6i1TPwYNxpr25Ib3gplvTjgrLdt_RkVDr_1fiPGTRFFlI1Rr0hUtbnew3wHGEGKg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzaU4sW5yCOlTKwETmOn6D6cK-GdgdAOkNeSrUYRwTUb2f0MS449ckKzQL9ZHVLQRnlfA/exec';
 
 function normalizeArabic(text) {
     if (!text) return '';
@@ -91,7 +91,7 @@ function closeModal(id) { document.getElementById(id).classList.add('opacity-0')
 function openSettingsModal() { openModal('settings-modal'); }
 
 // ==========================================
-// 🚀 قسم التذاكر (فلتر صارم للصفوف الوهمية)
+// 🚀 قسم التذاكر
 // ==========================================
 let allTicketsData = []; let currentFilter = 'all';
 let currentTicketAssets = []; 
@@ -122,10 +122,8 @@ function renderTickets() {
     const tb=document.getElementById('tickets-tbody'); 
     let h=''; 
     allTicketsData.filter(r => {
-        // 🚀 فلتر صارم جداً لمنع التذاكر الوهمية
         let hasData = false;
         for (const key in r) {
-            // تجاهل خانة الرقم وخانة الحالة عشان نتأكد إن في داتا بجد
             if (key !== 'رقم التيكت' && key !== 'الحالة (مفتوحة/قيد العمل/مغلقة)' && key !== 'الحالة') {
                 if (String(r[key]).trim() !== '') { hasData = true; break; }
             }
@@ -141,7 +139,6 @@ function renderTickets() {
         const s=r['الحالة (مفتوحة/قيد العمل/مغلقة)'] || 'مفتوحة'; 
         const sb=s==='مغلق'?'<span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/20">مغلق</span>':(s==='قيد العمل'?'<span class="bg-yellow-500/10 text-yellow-400 px-3 py-1 rounded-full text-xs font-bold border border-yellow-500/20">قيد العمل</span>':'<span class="bg-red-500/10 text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-500/20 animate-pulse">مفتوحة</span>'); 
         
-        // 🚀 تم محاذاة كل الأعمدة للنص (text-center)
         h+=`<tr class="data-row">
             <td class="p-4 font-black text-white text-lg text-center">#${r['رقم التيكت']}</td>
             <td class="p-4 text-cyan-300 font-bold text-center">${r['اسم المستخدم']||'-'}</td>
@@ -315,7 +312,7 @@ async function saveTicket() {
 }
 
 // ==========================================
-// --- الأصول (تم توحيد المحاذاة في الجدول) ---
+// --- الأصول ---
 // ==========================================
 let currentAssetsData = [];
 
@@ -387,7 +384,6 @@ function renderAssetsTable() {
         const hwRaw = r['Hardware'] || r['مواصفات الجهاز'] || '';
         const coloredHardware = colorizeText(hwRaw);
 
-        // 🚀 هنا تم إضافة text-center لجميع خانات الإنجليزي للحفاظ على التناسق البصري
         html += `
             <tr class="data-row asset-row" data-status="${statusVal}">
                 <td class="p-4 font-bold text-slate-400 text-center">${count}</td>
@@ -517,6 +513,169 @@ async function loadLogs() {
     } catch(e) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-20 text-red-500">خطأ في الاتصال بالبيانات</td></tr>'; }
 }
 
-// الشبكات
-function openNetworksModal() { openModal('networks-modal'); loadNetworks(); }
-async function loadNetworks() { document.getElementById('networks-tbody').innerHTML='<tr><td colspan="5" class="text-center py-20"><span class="loader"></span></td></tr>'; try{ const res=await fetch(`${API_URL}?type=networks`); const data=await res.json(); let h=''; data.forEach(r=>{if(!r['اسم الشبكه '])return; h+=`<tr class="data-row"><td class="p-4 font-bold text-white text-center"><i class="fa-solid fa-location-dot text-slate-500 ml-2"></i>${r['فرع']||'-'}</td><td class="p-4 text-cyan-300 font-bold text-center">${r['اسم الشبكه ']||'-'}</td><td class="p-4 text-green-400 font-mono text-center">${r['قوه شبكه  db']||'-'} db</td><td class="p-4 text-xs max-w-[200px] truncate text-center" title="${r['الاجهزه ']}">${r['الاجهزه ']}</td><td class="p-4 font-bold text-center">${r['عدد روتر ']||'-'}</td></tr>`;}); document.getElementById('networks-tbody').innerHTML=h||'<tr><td colspan="5" class="text-center py-20 text-slate-500">لا توجد بيانات</td></tr>'; }catch(e){ document.getElementById('networks-tbody').innerHTML='<tr><td colspan="5" class="text-center py-20 text-red-500">خطأ</td></tr>'; } }
+// ==========================================
+// 🚀 نظام إدارة الشبكات والروترات (NOC)
+// ==========================================
+let allNetworksData = [];
+
+function openNetworksModal() { 
+    openModal('networks-modal'); 
+    loadNetworks(); 
+    document.getElementById('network-search').value = '';
+}
+
+async function loadNetworks() { 
+    document.getElementById('networks-tbody').innerHTML='<tr><td colspan="11" class="text-center py-20"><span class="loader"></span> جاري سحب بيانات الشبكات...</td></tr>'; 
+    try { 
+        const res = await fetch(`${API_URL}?type=networks`); 
+        allNetworksData = await res.json(); 
+        renderNetworksTable(); 
+    } catch(e) { 
+        document.getElementById('networks-tbody').innerHTML='<tr><td colspan="11" class="text-center py-20 text-red-500">خطأ في الاتصال بقاعدة بيانات الشبكات</td></tr>'; 
+    } 
+}
+
+function renderNetworksTable() {
+    const tbody = document.getElementById('networks-tbody');
+    let html = ''; 
+    let lastValidBranch = ''; 
+
+    allNetworksData.forEach((r, index) => {
+        if(!r['ارقام التلفون الارضي'] && !r['ip router'] && !r['name wifi']) return;
+
+        let currentBranch = r[''] || r[Object.keys(r)[1]] || ''; 
+        if(currentBranch && currentBranch.trim() !== '') {
+            lastValidBranch = currentBranch;
+        } else {
+            currentBranch = `<span class="text-slate-600">${lastValidBranch}</span>`; 
+        }
+
+        const phone = r['ارقام التلفون الارضي'] || '-';
+        const task = r['المهمه'] || '-';
+        const date = r['تاريخ التجديد'] || '-';
+        const ip = r['ip router'] || '-';
+        const passR = r['pass router'] || '-';
+        const wifiN = r['name wifi'] || '-';
+        const wifiP = r['pass wifi'] || '-';
+        const weApp = r['pass we apps'] || '-';
+        const db = r['قوه شبكه db'] || r['db'] || '-';
+
+        html += `
+            <tr class="data-row net-row">
+                <td class="p-4 font-bold text-white text-center net-search-val">${currentBranch}</td>
+                <td class="p-4 text-cyan-300 font-mono font-bold text-center net-search-val">${phone}</td>
+                <td class="p-4 text-slate-300 text-xs text-center">${task}</td>
+                <td class="p-4 text-yellow-400 font-mono text-xs text-center">${date}</td>
+                <td class="p-4 text-green-400 font-mono font-bold text-center net-search-val" dir="ltr">${ip}</td>
+                <td class="p-4 text-slate-300 font-mono text-xs text-center">${passR}</td>
+                <td class="p-4 text-purple-400 font-bold text-center">${wifiN}</td>
+                <td class="p-4 text-yellow-300 font-mono text-xs text-center">${wifiP}</td>
+                <td class="p-4 text-pink-300 font-mono text-xs text-center">${weApp}</td>
+                <td class="p-4 text-slate-400 font-mono text-xs text-center">${db}</td>
+                <td class="p-4 text-center sticky left-0 bg-slate-900 border-r border-slate-700/50 shadow-[-5px_0_10px_rgba(0,0,0,0.3)] z-10">
+                    <button onclick="openNetworkForm(${index})" class="bg-slate-700 hover:bg-green-600 text-white px-3 py-1.5 rounded shadow transition text-xs font-bold"><i class="fa-solid fa-pen"></i></button>
+                </td>
+            </tr>`;
+    });
+    tbody.innerHTML = html || '<tr><td colspan="11" class="text-center py-20 text-slate-500">لا توجد شبكات مسجلة</td></tr>';
+}
+
+function searchNetworks() {
+    const input = document.getElementById('network-search').value.toLowerCase();
+    const rows = document.querySelectorAll('.net-row');
+    rows.forEach(row => {
+        let text = '';
+        row.querySelectorAll('.net-search-val').forEach(cell => text += cell.textContent.toLowerCase() + ' ');
+        row.style.display = text.includes(input) ? "" : "none";
+    });
+}
+
+function openNetworkForm(idx = -1) {
+    openModal('network-form-modal');
+    if (idx === -1) {
+        document.getElementById('network-form-title').innerHTML = '<i class="fa-solid fa-network-wired text-green-500 ml-2"></i>إضافة شبكة جديدة';
+        document.getElementById('n-old-ip').value = '';
+        document.getElementById('n-old-phone').value = '';
+        document.getElementById('n-branch').value = '';
+        document.getElementById('n-phone').value = '';
+        document.getElementById('n-task').value = '';
+        document.getElementById('n-date').value = '';
+        document.getElementById('n-ip').value = '';
+        document.getElementById('n-passrouter').value = '';
+        document.getElementById('n-wifiname').value = '';
+        document.getElementById('n-wifipass').value = '';
+        document.getElementById('n-weapps').value = '';
+        document.getElementById('n-db').value = '';
+    } else {
+        const r = allNetworksData[idx];
+        document.getElementById('network-form-title').innerHTML = '<i class="fa-solid fa-pen text-green-500 ml-2"></i>تعديل بيانات الشبكة';
+        
+        const branchColName = Object.keys(r)[1]; 
+        
+        document.getElementById('n-old-ip').value = r['ip router'] || '';
+        document.getElementById('n-old-phone').value = r['ارقام التلفون الارضي'] || '';
+        
+        document.getElementById('n-branch').value = r[branchColName] || '';
+        document.getElementById('n-phone').value = r['ارقام التلفون الارضي'] || '';
+        document.getElementById('n-task').value = r['المهمه'] || '';
+        document.getElementById('n-date').value = r['تاريخ التجديد'] || '';
+        document.getElementById('n-ip').value = r['ip router'] || '';
+        document.getElementById('n-passrouter').value = r['pass router'] || '';
+        document.getElementById('n-wifiname').value = r['name wifi'] || '';
+        document.getElementById('n-wifipass').value = r['pass wifi'] || '';
+        document.getElementById('n-weapps').value = r['pass we apps'] || '';
+        document.getElementById('n-db').value = r['قوه شبكه db'] || r['db'] || '';
+    }
+}
+
+async function saveNetwork() {
+    if(!checkPermission()) return;
+    const btn = document.getElementById('save-network-btn'); 
+    btn.innerHTML = '<span class="loader !w-5 !h-5"></span>'; 
+    btn.disabled = true;
+
+    const oldIp = document.getElementById('n-old-ip').value;
+    const oldPhone = document.getElementById('n-old-phone').value;
+    const isNew = (oldIp === '' && oldPhone === '');
+
+    const colBName = Object.keys(allNetworksData[0] || {})[1] || 'الفرع';
+
+    const updates = {
+        [colBName]: document.getElementById('n-branch').value,
+        "ارقام التلفون الارضي": document.getElementById('n-phone').value,
+        "المهمه": document.getElementById('n-task').value,
+        "تاريخ التجديد": document.getElementById('n-date').value,
+        "ip router": document.getElementById('n-ip').value,
+        "pass router": document.getElementById('n-passrouter').value,
+        "name wifi": document.getElementById('n-wifiname').value,
+        "pass wifi": document.getElementById('n-wifipass').value,
+        "pass we apps": document.getElementById('n-weapps').value,
+        "قوه شبكه db": document.getElementById('n-db').value
+    };
+
+    const payload = {
+        action: "save_network",
+        is_new: isNew,
+        old_ip: oldIp,
+        old_phone: oldPhone,
+        admin: document.getElementById('display-user-name').innerText,
+        updates: updates
+    };
+
+    try { 
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); 
+        const json = await res.json(); 
+        if(json.success) { 
+            showToast(json.message); 
+            closeModal('network-form-modal'); 
+            loadNetworks(); 
+        } else { 
+            showToast(json.message, true); 
+        } 
+    } catch(e) { 
+        showToast('خطأ بالاتصال بالخادم', true); 
+    } finally { 
+        btn.innerHTML = 'حفظ الشبكة'; 
+        btn.disabled = false; 
+    }
+}
