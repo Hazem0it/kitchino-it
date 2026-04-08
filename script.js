@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbzaU4sW5yCOlTKwETmOn6D6cK-GdgdAOkNeSrUYRwTUb2f0MS449ckKzQL9ZHVLQRnlfA/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzWfAvRZKIN1h0XzrFNab_1kSsMxNgUuDZDiaRCgsixRWITR3QQf-z1kzjl6oMfLh_6/exec';
 
 function normalizeArabic(text) {
     if (!text) return '';
@@ -411,6 +411,16 @@ function renderAssetsTable() {
     tbody.innerHTML = html || '<tr><td colspan="15" class="text-center py-20 text-slate-500">لا توجد بيانات مسجلة في هذا الفرع</td></tr>';
 }
 
+function revokeAsset(index) {
+    if(!checkPermission()) return;
+    if(!confirm("هل أنت متأكد أنك تريد سحب هذا الجهاز وجعله متوفر؟")) return;
+    document.getElementById('a-old-serial').value = currentAssetsData[index]['Board Serial Number'] || currentAssetsData[index]['سيريال لاب توب'] || '';
+    document.getElementById('a-serial').value = document.getElementById('a-old-serial').value;
+    document.getElementById('a-emp').value = ""; 
+    document.getElementById('a-comp').value = currentAssetsData[index]['Computer Name'] || ''; document.getElementById('a-user').value = currentAssetsData[index]['User Name'] || ''; document.getElementById('a-os').value = currentAssetsData[index]['O.S'] || ''; document.getElementById('a-model').value = currentAssetsData[index]['Model'] || ''; document.getElementById('a-hard').value = currentAssetsData[index]['Hardware'] || currentAssetsData[index]['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = currentAssetsData[index]['Printer '] || currentAssetsData[index]['Printer'] || ''; document.getElementById('a-prog').value = currentAssetsData[index]['O.S. & Programes'] || ''; document.getElementById('a-loc').value = currentAssetsData[index]['Branche \\ Location '] || currentAssetsData[index]['Branche \\ Location'] || ''; document.getElementById('a-usb').value = currentAssetsData[index]['pass usb'] || ''; document.getElementById('a-win').value = currentAssetsData[index]['pass win'] || ''; document.getElementById('a-phone').value = currentAssetsData[index]['Phone and serial number'] || '';
+    saveAssetChanges();
+}
+
 function searchAssets() {
     const inputRaw = document.getElementById('asset-search').value.toLowerCase();
     const input = normalizeArabic(inputRaw);
@@ -477,16 +487,6 @@ async function saveAssetChanges() {
     try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); const json = await res.json(); if(json.success) { showToast('تم الحفظ بنجاح!'); closeModal('asset-edit-modal'); loadBranchData(); } else showToast(json.message, true); } catch(e) { showToast('خطأ بالاتصال', true); } finally { btn.innerHTML = 'حفظ البيانات'; btn.disabled = false; }
 }
 
-function revokeAsset(index) {
-    if(!checkPermission()) return;
-    if(!confirm("هل أنت متأكد أنك تريد سحب هذا الجهاز وجعله متوفر؟")) return;
-    document.getElementById('a-old-serial').value = currentAssetsData[index]['Board Serial Number'] || currentAssetsData[index]['سيريال لاب توب'] || '';
-    document.getElementById('a-serial').value = document.getElementById('a-old-serial').value;
-    document.getElementById('a-emp').value = ""; 
-    document.getElementById('a-comp').value = currentAssetsData[index]['Computer Name'] || ''; document.getElementById('a-user').value = currentAssetsData[index]['User Name'] || ''; document.getElementById('a-os').value = currentAssetsData[index]['O.S'] || ''; document.getElementById('a-model').value = currentAssetsData[index]['Model'] || ''; document.getElementById('a-hard').value = currentAssetsData[index]['Hardware'] || currentAssetsData[index]['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = currentAssetsData[index]['Printer '] || currentAssetsData[index]['Printer'] || ''; document.getElementById('a-prog').value = currentAssetsData[index]['O.S. & Programes'] || ''; document.getElementById('a-loc').value = currentAssetsData[index]['Branche \\ Location '] || currentAssetsData[index]['Branche \\ Location'] || ''; document.getElementById('a-usb').value = currentAssetsData[index]['pass usb'] || ''; document.getElementById('a-win').value = currentAssetsData[index]['pass win'] || ''; document.getElementById('a-phone').value = currentAssetsData[index]['Phone and serial number'] || '';
-    saveAssetChanges();
-}
-
 // --- سجل الحركات (Logs) ---
 function openLogsModal() { openModal('logs-modal'); loadLogs(); }
 
@@ -525,31 +525,45 @@ function openNetworksModal() {
 }
 
 async function loadNetworks() { 
-    document.getElementById('networks-tbody').innerHTML='<tr><td colspan="11" class="text-center py-20"><span class="loader"></span> جاري سحب بيانات الشبكات...</td></tr>'; 
+    document.getElementById('networks-tbody').innerHTML='<tr><td colspan="12" class="text-center py-20"><span class="loader"></span> جاري سحب بيانات الشبكات...</td></tr>'; 
     try { 
         const res = await fetch(`${API_URL}?type=networks`); 
         allNetworksData = await res.json(); 
+        
+        // 🚀 معالجة الخلايا المدمجة (Merged Cells) أوتوماتيكياً
+        let currentBranch = '';
+        const branchColKey = Object.keys(allNetworksData[0] || {}).find(k => k === "" || k === "الفرع") || Object.keys(allNetworksData[0] || {})[0];
+        
+        allNetworksData = allNetworksData.map(r => {
+            if (r[branchColKey] && String(r[branchColKey]).trim() !== "") {
+                currentBranch = String(r[branchColKey]).trim();
+                r.isChild = false;
+            } else {
+                r[branchColKey] = currentBranch; 
+                r.isChild = true;
+            }
+            return r;
+        });
+
         renderNetworksTable(); 
     } catch(e) { 
-        document.getElementById('networks-tbody').innerHTML='<tr><td colspan="11" class="text-center py-20 text-red-500">خطأ في الاتصال بقاعدة بيانات الشبكات</td></tr>'; 
+        document.getElementById('networks-tbody').innerHTML='<tr><td colspan="12" class="text-center py-20 text-red-500">خطأ في الاتصال بقاعدة بيانات الشبكات</td></tr>'; 
     } 
 }
 
 function renderNetworksTable() {
     const tbody = document.getElementById('networks-tbody');
     let html = ''; 
-    let lastValidBranch = ''; 
+    const branchColKey = Object.keys(allNetworksData[0] || {}).find(k => k === "" || k === "الفرع") || Object.keys(allNetworksData[0] || {})[0];
 
     allNetworksData.forEach((r, index) => {
-        if(!r['ارقام التلفون الارضي'] && !r['ip router'] && !r['name wifi']) return;
+        if(!r['ارقام التلفون الارضي'] && !r['ip router'] && !r['name wifi'] && !r['اسم الاجهزه']) return;
 
-        let currentBranch = r[''] || r[Object.keys(r)[1]] || ''; 
-        if(currentBranch && currentBranch.trim() !== '') {
-            lastValidBranch = currentBranch;
-        } else {
-            currentBranch = `<span class="text-slate-600">${lastValidBranch}</span>`; 
-        }
-
+        const branch = r[branchColKey] || '-';
+        // 🚀 تلوين التابع لخلية مدمجة بشكل باهت مع أيقونة تفرع
+        const displayBranch = r.isChild ? `<i class="fa-solid fa-turn-up fa-rotate-90 mr-2 text-slate-700"></i><span class="text-slate-600">${branch}</span>` : branch;
+        
+        const deviceName = r['اسم الاجهزه'] || '-';
         const phone = r['ارقام التلفون الارضي'] || '-';
         const task = r['المهمه'] || '-';
         const date = r['تاريخ التجديد'] || '-';
@@ -562,7 +576,8 @@ function renderNetworksTable() {
 
         html += `
             <tr class="data-row net-row">
-                <td class="p-4 font-bold text-white text-center net-search-val">${currentBranch}</td>
+                <td class="p-4 font-bold text-center net-search-val ${r.isChild ? 'text-sm' : 'text-white'}">${displayBranch}</td>
+                <td class="p-4 text-blue-300 font-bold text-center net-search-val">${deviceName}</td>
                 <td class="p-4 text-cyan-300 font-mono font-bold text-center net-search-val">${phone}</td>
                 <td class="p-4 text-slate-300 text-xs text-center">${task}</td>
                 <td class="p-4 text-yellow-400 font-mono text-xs text-center">${date}</td>
@@ -577,7 +592,7 @@ function renderNetworksTable() {
                 </td>
             </tr>`;
     });
-    tbody.innerHTML = html || '<tr><td colspan="11" class="text-center py-20 text-slate-500">لا توجد شبكات مسجلة</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="12" class="text-center py-20 text-slate-500">لا توجد شبكات مسجلة</td></tr>';
 }
 
 function searchNetworks() {
@@ -593,10 +608,10 @@ function searchNetworks() {
 function openNetworkForm(idx = -1) {
     openModal('network-form-modal');
     if (idx === -1) {
-        document.getElementById('network-form-title').innerHTML = '<i class="fa-solid fa-network-wired text-green-500 ml-2"></i>إضافة شبكة جديدة';
-        document.getElementById('n-old-ip').value = '';
-        document.getElementById('n-old-phone').value = '';
+        document.getElementById('network-form-title').innerHTML = '<i class="fa-solid fa-network-wired text-green-500 ml-2"></i>إضافة شبكة/جهاز جديد';
+        document.getElementById('n-row-num').value = '';
         document.getElementById('n-branch').value = '';
+        document.getElementById('n-device').value = '';
         document.getElementById('n-phone').value = '';
         document.getElementById('n-task').value = '';
         document.getElementById('n-date').value = '';
@@ -608,14 +623,15 @@ function openNetworkForm(idx = -1) {
         document.getElementById('n-db').value = '';
     } else {
         const r = allNetworksData[idx];
-        document.getElementById('network-form-title').innerHTML = '<i class="fa-solid fa-pen text-green-500 ml-2"></i>تعديل بيانات الشبكة';
+        document.getElementById('network-form-title').innerHTML = '<i class="fa-solid fa-pen text-green-500 ml-2"></i>تعديل بيانات الشبكة/الجهاز';
         
-        const branchColName = Object.keys(r)[1]; 
+        // 🚀 تمرير رقم الصف المخفي لضمان دقة التعديل بنسبة 100%
+        document.getElementById('n-row-num').value = r['_rowNum'] || '';
         
-        document.getElementById('n-old-ip').value = r['ip router'] || '';
-        document.getElementById('n-old-phone').value = r['ارقام التلفون الارضي'] || '';
+        const branchColKey = Object.keys(r)[1] === "اسم الاجهزه" ? Object.keys(r)[0] : Object.keys(r)[1]; // تأمين قراءة اسم العمود
         
-        document.getElementById('n-branch').value = r[branchColName] || '';
+        document.getElementById('n-branch').value = r[branchColKey] || '';
+        document.getElementById('n-device').value = r['اسم الاجهزه'] || '';
         document.getElementById('n-phone').value = r['ارقام التلفون الارضي'] || '';
         document.getElementById('n-task').value = r['المهمه'] || '';
         document.getElementById('n-date').value = r['تاريخ التجديد'] || '';
@@ -634,14 +650,14 @@ async function saveNetwork() {
     btn.innerHTML = '<span class="loader !w-5 !h-5"></span>'; 
     btn.disabled = true;
 
-    const oldIp = document.getElementById('n-old-ip').value;
-    const oldPhone = document.getElementById('n-old-phone').value;
-    const isNew = (oldIp === '' && oldPhone === '');
+    const rowNum = document.getElementById('n-row-num').value;
+    const isNew = (rowNum === '');
 
-    const colBName = Object.keys(allNetworksData[0] || {})[1] || 'الفرع';
+    const branchColKey = Object.keys(allNetworksData[0] || {})[1] === "اسم الاجهزه" ? Object.keys(allNetworksData[0] || {})[0] : (Object.keys(allNetworksData[0] || {})[1] || 'الفرع');
 
     const updates = {
-        [colBName]: document.getElementById('n-branch').value,
+        [branchColKey]: document.getElementById('n-branch').value,
+        "اسم الاجهزه": document.getElementById('n-device').value,
         "ارقام التلفون الارضي": document.getElementById('n-phone').value,
         "المهمه": document.getElementById('n-task').value,
         "تاريخ التجديد": document.getElementById('n-date').value,
@@ -656,8 +672,7 @@ async function saveNetwork() {
     const payload = {
         action: "save_network",
         is_new: isNew,
-        old_ip: oldIp,
-        old_phone: oldPhone,
+        row_num: rowNum, // 🚀 التعديل عن طريق رقم الصف
         admin: document.getElementById('display-user-name').innerText,
         updates: updates
     };
