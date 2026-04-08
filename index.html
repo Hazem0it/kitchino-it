@@ -52,7 +52,7 @@
     <div id="logs-modal" class="fixed inset-0 modal-overlay z-[70] hidden opacity-0 transition-opacity duration-300 flex justify-center items-center p-4">
         <div class="bg-slate-900 w-full max-w-6xl h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-slate-700">
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/80"><h2 class="text-2xl font-bold text-white"><i class="fa-solid fa-clock-rotate-left text-purple-500 ml-2"></i>سجل حركات النظام</h2><button onclick="closeModal('logs-modal')" class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-xmark text-3xl"></i></button></div>
-            <div class="flex-1 overflow-auto p-6"><table class="w-full text-left text-sm" dir="rtl"><thead class="sticky top-0 bg-slate-900 z-10 shadow-md"><tr><th>التاريخ والوقت</th><th>نوع العملية</th><th>التفاصيل/السيريال</th><th>الموظف المستهدف</th><th>المنفذ</th></tr></thead><tbody id="logs-tbody" class="text-slate-300"></tbody></table></div>
+            <div class="flex-1 overflow-auto p-6"><table class="w-full text-left text-sm" dir="rtl"><thead class="sticky top-0 bg-slate-900 z-10 shadow-md"><tr><th class="text-center">التاريخ والوقت</th><th class="text-center">نوع العملية</th><th class="text-center">التفاصيل/السيريال</th><th class="text-center">الموظف المستهدف</th><th class="text-center">المنفذ</th></tr></thead><tbody id="logs-tbody" class="text-slate-300"></tbody></table></div>
         </div>
     </div>
 
@@ -67,7 +67,7 @@
                         <select id="new-role" class="bg-slate-900 border border-slate-600 rounded-lg p-3 text-white outline-none"><option value="Admin">Admin</option><option value="Viewer">Viewer (مشاهدة فقط)</option></select><button onclick="addUser()" class="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-lg">إضافة</button>
                     </div>
                 </div>
-                <table class="w-full text-left text-sm" dir="rtl"><thead class="bg-slate-800"><tr><th class="p-4">المستخدم</th><th class="p-4">الصلاحية</th><th class="p-4">كلمة المرور</th><th class="p-4 text-center">إجراء</th></tr></thead><tbody id="users-tbody"></tbody></table>
+                <table class="w-full text-left text-sm" dir="rtl"><thead class="bg-slate-800"><tr><th class="p-4 text-center">المستخدم</th><th class="p-4 text-center">الصلاحية</th><th class="p-4 text-center">كلمة المرور</th><th class="p-4 text-center">إجراء</th></tr></thead><tbody id="users-tbody"></tbody></table>
             </div>
         </div>
     </div>
@@ -76,7 +76,23 @@
         <div class="bg-slate-900 w-full max-w-[95vw] h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-slate-700">
             <div class="p-6 border-b border-slate-800 flex justify-between items-center"><div class="flex items-center gap-6"><h2 class="text-2xl font-bold text-white"><i class="fa-solid fa-headset text-red-500 ml-2"></i>الأعطال</h2><button onclick="openTicketForm(-1)" class="bg-red-600 text-white px-5 py-2.5 rounded-lg font-bold"><i class="fa-solid fa-plus"></i> تذكرة جديدة</button></div><button onclick="closeModal('tickets-modal')" class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-xmark text-3xl"></i></button></div>
             <div class="bg-slate-900 p-4 border-b border-slate-800 flex gap-3"><button onclick="filterTickets('all')" id="tab-all" class="filter-tab active bg-cyan-600 text-white px-6 py-2 rounded-lg text-sm border border-cyan-500">الكل</button><button onclick="filterTickets('مفتوحة')" id="tab-open" class="filter-tab bg-slate-800 text-slate-300 px-6 py-2 rounded-lg text-sm">مفتوحة</button><button onclick="filterTickets('مغلق')" id="tab-closed" class="filter-tab bg-slate-800 text-slate-300 px-6 py-2 rounded-lg text-sm">مغلقة</button></div>
-            <div class="flex-1 overflow-auto p-6"><table class="w-full text-left text-sm" dir="rtl"><thead class="sticky top-0 bg-slate-900 z-10"><tr><th>رقم</th><th>المستخدم</th><th>المشكلة</th><th>الشركة - الفرع</th><th>تاريخ الحل</th><th>الحالة</th><th class="text-center sticky left-0 bg-slate-900 z-20 shadow-[-5px_0_10px_rgba(0,0,0,0.3)]">إجراء</th></tr></thead><tbody id="tickets-tbody"></tbody></table></div>
+            <div class="flex-1 overflow-auto p-6">
+                <table class="w-full text-left text-sm" dir="rtl">
+                    <thead class="sticky top-0 bg-slate-900 z-10">
+                        <tr>
+                            <th class="text-center">رقم</th>
+                            <th class="text-center">المستخدم</th>
+                            <th class="text-center">المشكلة</th>
+                            <th class="text-center">الشركة - الفرع</th>
+                            <th class="text-center">تاريخ التبليغ</th>
+                            <th class="text-center">تاريخ الحل</th>
+                            <th class="text-center">الحالة</th>
+                            <th class="text-center sticky left-0 bg-slate-900 z-20 shadow-[-5px_0_10px_rgba(0,0,0,0.3)]">إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tickets-tbody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -96,14 +112,12 @@
                         <option value="ASSISTO-TROLLY-Katamya">ASSISTO-TROLLY-Katamya</option>
                     </select>
                 </div>
-
                 <div>
                     <label class="block text-slate-400 text-sm mb-2 font-bold">الفرع</label>
                     <select id="t-location" onchange="filterUsersByLocation()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-cyan-500">
                         <option value="">اختر الشركة أولاً...</option>
                     </select>
                 </div>
-
                 <div>
                     <label class="block text-slate-400 text-sm mb-2 font-bold">المستخدم (الموظف)</label>
                     <div class="flex gap-2">
@@ -113,14 +127,12 @@
                         <button onclick="addNewUserFromTicket()" class="bg-cyan-600 hover:bg-cyan-500 text-white px-3 rounded-lg font-bold transition shadow" title="إضافة موظف جديد لفرع محدد"><i class="fa-solid fa-user-plus"></i></button>
                     </div>
                 </div>
-
                 <div>
                     <label class="block text-slate-400 text-sm mb-2 font-bold">الحالة</label>
                     <select id="t-status" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-cyan-500">
                         <option>مفتوحة</option><option>قيد العمل</option><option>مغلق</option>
                     </select>
                 </div>
-                
                 <div class="md:col-span-4"><label class="block text-slate-400 text-sm mb-2 font-bold">المشكلة</label><input type="text" id="t-problem" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-cyan-500"></div>
                 <div class="md:col-span-2"><label class="block text-slate-400 text-sm mb-2 font-bold">تاريخ التبليغ</label><input type="date" id="t-report" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-cyan-500"></div>
                 <div class="md:col-span-2"><label class="block text-slate-400 text-sm mb-2 font-bold">تاريخ الحل</label><input type="date" id="t-solve" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-cyan-500"></div>
@@ -166,7 +178,30 @@
                 </div>
                 <button onclick="closeModal('assets-modal')" class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-xmark text-3xl"></i></button>
             </div>
-            <div class="flex-1 overflow-auto p-6"><table id="assets-table" class="w-full text-left text-sm whitespace-nowrap" dir="rtl"><thead class="sticky top-0 bg-slate-900 z-10"><tr><th>م</th><th>الموظف/الحالة</th><th>Computer Name</th><th class="text-cyan-400">Board Serial Number</th><th>User Name</th><th>القسم/الوظيفة</th><th>Model</th><th>Hardware</th><th>Printer</th><th>O.S. & Programes</th><th>Location</th><th>pass usb</th><th>pass win</th><th>Phone & serial</th><th class="text-center sticky left-0 bg-slate-900 z-20 shadow-[-5px_0_10px_rgba(0,0,0,0.3)]">إجراء</th></tr></thead><tbody id="assets-tbody" class="text-slate-300"></tbody></table></div>
+            <div class="flex-1 overflow-auto p-6">
+                <table id="assets-table" class="w-full text-left text-sm whitespace-nowrap" dir="rtl">
+                    <thead class="sticky top-0 bg-slate-900 z-10">
+                        <tr>
+                            <th class="text-center">م</th>
+                            <th class="text-right">الموظف/الحالة</th>
+                            <th class="text-center">Computer Name</th>
+                            <th class="text-center text-cyan-400">Board Serial Number</th>
+                            <th class="text-center">User Name</th>
+                            <th class="text-center">القسم/الوظيفة</th>
+                            <th class="text-center">Model</th>
+                            <th class="text-center">Hardware</th>
+                            <th class="text-center">Printer</th>
+                            <th class="text-center">O.S. & Programes</th>
+                            <th class="text-center">Location</th>
+                            <th class="text-center">pass usb</th>
+                            <th class="text-center">pass win</th>
+                            <th class="text-center">Phone & serial</th>
+                            <th class="text-center sticky left-0 bg-slate-900 z-20 shadow-[-5px_0_10px_rgba(0,0,0,0.3)]">إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assets-tbody" class="text-slate-300"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -184,7 +219,7 @@
     <div id="networks-modal" class="fixed inset-0 modal-overlay z-50 hidden opacity-0 transition-opacity flex justify-center items-center p-4">
         <div class="bg-slate-900 w-full max-w-5xl h-[85vh] flex flex-col rounded-2xl border border-slate-700 shadow-2xl">
             <div class="p-6 border-b border-slate-800 flex justify-between items-center"><h2 class="text-2xl font-bold text-white"><i class="fa-solid fa-network-wired text-green-500 ml-2"></i>الشبكات</h2><button onclick="closeModal('networks-modal')" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark text-3xl"></i></button></div>
-            <div class="flex-1 overflow-auto p-6"><table class="w-full text-left text-sm" dir="rtl"><thead class="sticky top-0 bg-slate-900"><tr><th>الفرع</th><th>اسم الشبكة</th><th>الإشارة (db)</th><th>الأجهزة المتصلة</th><th>عدد الروترات</th></tr></thead><tbody id="networks-tbody"></tbody></table></div>
+            <div class="flex-1 overflow-auto p-6"><table class="w-full text-left text-sm" dir="rtl"><thead class="sticky top-0 bg-slate-900"><tr><th class="text-center">الفرع</th><th class="text-center">اسم الشبكة</th><th class="text-center">الإشارة (db)</th><th class="text-center">الأجهزة المتصلة</th><th class="text-center">عدد الروترات</th></tr></thead><tbody id="networks-tbody"></tbody></table></div>
         </div>
     </div>
 
