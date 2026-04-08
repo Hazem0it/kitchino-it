@@ -74,9 +74,9 @@ function renderUsersTable() {
     const tb = document.getElementById('users-tbody'); 
     tb.innerHTML = usersDB.map((u,i) => `
         <tr class="data-row border-b border-slate-700/50">
-            <td class="p-4 font-bold text-white"><i class="fa-solid fa-user-tie text-slate-500 ml-2"></i>${u.username}</td>
-            <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${u.role==='Admin' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-yellow-500/20 text-yellow-400'}">${u.role}</span></td>
-            <td class="p-4"><div class="flex gap-2"><input type="text" id="pass-${i}" value="${u.pass}" class="bg-slate-900 border border-slate-600 rounded px-3 py-1.5 text-sm text-white w-32 outline-none focus:border-cyan-500"><button onclick="changePass(${i})" class="bg-slate-700 hover:bg-cyan-600 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">تحديث</button></div></td>
+            <td class="p-4 font-bold text-white text-center"><i class="fa-solid fa-user-tie text-slate-500 ml-2"></i>${u.username}</td>
+            <td class="p-4 text-center"><span class="px-2 py-1 rounded text-xs font-bold ${u.role==='Admin' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-yellow-500/20 text-yellow-400'}">${u.role}</span></td>
+            <td class="p-4 text-center"><div class="flex justify-center gap-2"><input type="text" id="pass-${i}" value="${u.pass}" class="bg-slate-900 border border-slate-600 rounded px-3 py-1.5 text-sm text-white w-32 outline-none focus:border-cyan-500"><button onclick="changePass(${i})" class="bg-slate-700 hover:bg-cyan-600 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow">تحديث</button></div></td>
             <td class="p-4 text-center"><button onclick="deleteUser(${i})" class="text-slate-500 hover:text-red-500 transition text-lg"><i class="fa-solid fa-trash"></i></button></td>
         </tr>
     `).join(''); 
@@ -91,10 +91,10 @@ function closeModal(id) { document.getElementById(id).classList.add('opacity-0')
 function openSettingsModal() { openModal('settings-modal'); }
 
 // ==========================================
-// 🚀 قسم التذاكر الذكية (الشركة -> الفرع -> الموظف)
+// 🚀 قسم التذاكر (فلتر صارم للصفوف الوهمية)
 // ==========================================
 let allTicketsData = []; let currentFilter = 'all';
-let currentTicketAssets = []; // لتخزين بيانات أجهزة الشركة المحددة
+let currentTicketAssets = []; 
 
 function openTicketsModal() { openModal('tickets-modal'); loadTickets(); }
 
@@ -122,9 +122,15 @@ function renderTickets() {
     const tb=document.getElementById('tickets-tbody'); 
     let h=''; 
     allTicketsData.filter(r => {
-        const userName = (r['اسم المستخدم'] || r['المستخدم'] || '').trim();
-        const problem = (r['مشكله'] || r['المشكلة'] || '').trim();
-        if (!r['رقم التيكت'] || (!userName && !problem)) return false; 
+        // 🚀 فلتر صارم جداً لمنع التذاكر الوهمية
+        let hasData = false;
+        for (const key in r) {
+            // تجاهل خانة الرقم وخانة الحالة عشان نتأكد إن في داتا بجد
+            if (key !== 'رقم التيكت' && key !== 'الحالة (مفتوحة/قيد العمل/مغلقة)' && key !== 'الحالة') {
+                if (String(r[key]).trim() !== '') { hasData = true; break; }
+            }
+        }
+        if (!r['رقم التيكت'] || !hasData) return false; 
         
         const s=r['الحالة (مفتوحة/قيد العمل/مغلقة)'] || 'مفتوحة';
         if (currentFilter === 'all') return true;
@@ -134,12 +140,22 @@ function renderTickets() {
         const idx=allTicketsData.findIndex(i=>i['رقم التيكت']===r['رقم التيكت']); 
         const s=r['الحالة (مفتوحة/قيد العمل/مغلقة)'] || 'مفتوحة'; 
         const sb=s==='مغلق'?'<span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/20">مغلق</span>':(s==='قيد العمل'?'<span class="bg-yellow-500/10 text-yellow-400 px-3 py-1 rounded-full text-xs font-bold border border-yellow-500/20">قيد العمل</span>':'<span class="bg-red-500/10 text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-500/20 animate-pulse">مفتوحة</span>'); 
-        h+=`<tr class="data-row"><td class="p-4 font-black text-white text-lg">#${r['رقم التيكت']}</td><td class="p-4 text-cyan-300 font-bold">${r['اسم المستخدم']||'-'}</td><td class="p-4 max-w-[200px] truncate" title="${r['مشكله']||''}">${r['مشكله']||'-'}</td><td class="p-4 text-xs font-bold">${r['الفرع']||'-'}</td><td class="p-4 text-xs text-slate-400 font-mono">${r['تاريخ التبليغ']||'-'}</td><td class="p-4 text-xs text-slate-400 font-mono">${r['تاريخ الحل']||'-'}</td><td class="p-4">${sb}</td><td class="p-4 text-center sticky left-0 bg-slate-900 border-r border-slate-700/50 shadow-[-5px_0_10px_rgba(0,0,0,0.3)] z-10"><button onclick="openTicketForm(${idx})" class="bg-slate-700 hover:bg-cyan-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition shadow">تحديث</button></td></tr>`;
+        
+        // 🚀 تم محاذاة كل الأعمدة للنص (text-center)
+        h+=`<tr class="data-row">
+            <td class="p-4 font-black text-white text-lg text-center">#${r['رقم التيكت']}</td>
+            <td class="p-4 text-cyan-300 font-bold text-center">${r['اسم المستخدم']||'-'}</td>
+            <td class="p-4 max-w-[200px] truncate text-center" title="${r['مشكله']||''}">${r['مشكله']||'-'}</td>
+            <td class="p-4 text-xs font-bold text-center">${r['الفرع']||'-'}</td>
+            <td class="p-4 text-xs text-slate-400 font-mono text-center">${r['تاريخ التبليغ']||'-'}</td>
+            <td class="p-4 text-xs text-slate-400 font-mono text-center">${r['تاريخ الحل']||'-'}</td>
+            <td class="p-4 text-center">${sb}</td>
+            <td class="p-4 text-center sticky left-0 bg-slate-900 border-r border-slate-700/50 shadow-[-5px_0_10px_rgba(0,0,0,0.3)] z-10"><button onclick="openTicketForm(${idx})" class="bg-slate-700 hover:bg-cyan-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition shadow">تحديث</button></td>
+        </tr>`;
     }); 
     tb.innerHTML=h||'<tr><td colspan="8" class="text-center py-20 text-slate-500">لا توجد تذاكر متطابقة</td></tr>'; 
 }
 
-// 🚀 سحب بيانات الشركة (الفروع والموظفين) للتذكرة
 async function loadCompanyDataForTicket(selectedLoc = '', selectedUser = '') {
     const company = document.getElementById('t-company').value;
     const locSelect = document.getElementById('t-location');
@@ -159,7 +175,6 @@ async function loadCompanyDataForTicket(selectedLoc = '', selectedUser = '') {
         const res = await fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(company)}`);
         currentTicketAssets = await res.json();
         
-        // استخراج الفروع (Locations) بدون تكرار
         const uniqueLocs = new Set();
         currentTicketAssets.forEach(r => {
             const loc = (r['Branche \\ Location '] || r['Branche \\ Location'] || '').trim();
@@ -167,15 +182,12 @@ async function loadCompanyDataForTicket(selectedLoc = '', selectedUser = '') {
         });
         
         let locHtml = '<option value="">-- كل الفروع --</option>';
-        Array.from(uniqueLocs).sort().forEach(loc => {
-            locHtml += `<option value="${loc}">${loc}</option>`;
-        });
+        Array.from(uniqueLocs).sort().forEach(loc => { locHtml += `<option value="${loc}">${loc}</option>`; });
         locSelect.innerHTML = locHtml;
 
         if (selectedLoc && uniqueLocs.has(selectedLoc)) locSelect.value = selectedLoc;
         else if (selectedLoc) { locSelect.innerHTML += `<option value="${selectedLoc}">${selectedLoc}</option>`; locSelect.value = selectedLoc; }
 
-        // تصفية الموظفين بناءً على الفرع المحدد
         filterUsersByLocation(selectedUser);
 
     } catch (e) {
@@ -184,7 +196,6 @@ async function loadCompanyDataForTicket(selectedLoc = '', selectedUser = '') {
     }
 }
 
-// 🚀 تصفية الموظفين عند تغيير الفرع
 function filterUsersByLocation(selectedUser = '') {
     const locSelect = document.getElementById('t-location').value;
     const userSelect = document.getElementById('t-user');
@@ -194,24 +205,18 @@ function filterUsersByLocation(selectedUser = '') {
         const rLoc = (r['Branche \\ Location '] || r['Branche \\ Location'] || '').trim();
         const empName = (r['اسم الموظف'] || '').trim();
         if (empName) {
-            // لو مفيش فرع محدد، اعرض كل موظفين الشركة، أو اعرض موظفين الفرع ده بس
-            if (!locSelect || locSelect === rLoc) {
-                uniqueUsers.add(empName);
-            }
+            if (!locSelect || locSelect === rLoc) { uniqueUsers.add(empName); }
         }
     });
 
     let userHtml = '<option value="">-- اختر الموظف --</option>';
-    Array.from(uniqueUsers).sort().forEach(user => {
-        userHtml += `<option value="${user}">${user}</option>`;
-    });
+    Array.from(uniqueUsers).sort().forEach(user => { userHtml += `<option value="${user}">${user}</option>`; });
     userSelect.innerHTML = userHtml;
 
     if (selectedUser && uniqueUsers.has(selectedUser)) userSelect.value = selectedUser;
     else if (selectedUser) { userSelect.innerHTML += `<option value="${selectedUser}">${selectedUser}</option>`; userSelect.value = selectedUser; }
 }
 
-// 🚀 إضافة موظف جديد لفرع محدد
 async function addNewUserFromTicket() {
     if(!checkPermission()) return;
     const company = document.getElementById('t-company').value;
@@ -242,17 +247,11 @@ async function addNewUserFromTicket() {
     try {
         const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: {'Content-Type': 'text/plain;charset=utf-8'} });
         const json = await res.json();
-        if(json.success) {
-            showToast(`تم إضافة ${newName} لفرع ${newLocation}!`);
-            await loadCompanyDataForTicket(newLocation, newName); 
-        } else {
-            showToast(json.message, true);
-            await loadCompanyDataForTicket(); 
-        }
+        if(json.success) { showToast(`تم إضافة ${newName} لفرع ${newLocation}!`); await loadCompanyDataForTicket(newLocation, newName); } 
+        else { showToast(json.message, true); await loadCompanyDataForTicket(); }
     } catch(e) { showToast('خطأ بالاتصال', true); }
 }
 
-// 🚀 فتح التذكرة وتجهيز الداتا
 async function openTicketForm(idx=-1) { 
     openModal('ticket-form-modal');
     
@@ -273,7 +272,6 @@ async function openTicketForm(idx=-1) {
         document.getElementById('ticket-form-title').innerHTML='<i class="fa-solid fa-pen text-red-500 ml-2"></i>تعديل التذكرة #' + r['رقم التيكت']; 
         document.getElementById('t-id').value=r['رقم التيكت']; 
         
-        // فصل الشركة والفرع اللي متسجلين في شيت التذاكر (مثال: kitchino - التجمع)
         let savedBranch = r['الفرع'] || '';
         let comp = '', loc = '';
         if(savedBranch.includes(' - ')) {
@@ -286,9 +284,8 @@ async function openTicketForm(idx=-1) {
 
         document.getElementById('t-company').value = comp; 
         
-        if (comp) {
-            await loadCompanyDataForTicket(loc, r['اسم المستخدم']);
-        } else {
+        if (comp) { await loadCompanyDataForTicket(loc, r['اسم المستخدم']); } 
+        else {
             document.getElementById('t-location').innerHTML = `<option value="">--</option>`;
             document.getElementById('t-user').innerHTML = `<option value="${r['اسم المستخدم']}">${r['اسم المستخدم']}</option>`;
             document.getElementById('t-user').value = r['اسم المستخدم'] || '';
@@ -304,12 +301,10 @@ async function openTicketForm(idx=-1) {
     } 
 }
 
-// 🚀 حفظ التذكرة مدمج فيها الشركة + الفرع
 async function saveTicket() { 
     if(!checkPermission()) return;
     const btn=document.getElementById('save-ticket-btn'); btn.innerHTML='<span class="loader !w-5 !h-5"></span>'; btn.disabled=true; 
     
-    // دمج الشركة مع الفرع للحفظ في الإكسيل
     const comp = document.getElementById('t-company').value;
     const loc = document.getElementById('t-location').value;
     const fullBranch = loc ? `${comp} - ${loc}` : comp;
@@ -320,7 +315,7 @@ async function saveTicket() {
 }
 
 // ==========================================
-// --- الأصول وتكبير الأعمدة والفلترة الذكية ---
+// --- الأصول (تم توحيد المحاذاة في الجدول) ---
 // ==========================================
 let currentAssetsData = [];
 
@@ -392,23 +387,24 @@ function renderAssetsTable() {
         const hwRaw = r['Hardware'] || r['مواصفات الجهاز'] || '';
         const coloredHardware = colorizeText(hwRaw);
 
+        // 🚀 هنا تم إضافة text-center لجميع خانات الإنجليزي للحفاظ على التناسق البصري
         html += `
             <tr class="data-row asset-row" data-status="${statusVal}">
-                <td class="font-bold text-slate-400">${count}</td>
-                <td class="font-bold text-white emp-search-val">${empDisplay}</td>
-                <td class="text-xs text-slate-300">${r['Computer Name'] || '-'}</td>
-                <td class="font-mono text-sm serial-search-val" dir="ltr">${coloredSerial}</td>
-                <td class="text-xs text-slate-300">${r['User Name'] || '-'}</td>
-                <td class="text-xs text-slate-300 os-search-val"><span class="bg-slate-800 px-2 py-1 rounded border border-slate-700">${r['O.S'] || '-'}</span></td>
-                <td class="text-xs text-slate-300 max-w-[150px] truncate" title="${r['Model'] || ''}">${r['Model'] || '-'}</td>
-                <td class="text-xs text-slate-300 max-w-[350px] truncate" title="${hwRaw}" dir="ltr">${coloredHardware}</td>
-                <td class="text-xs text-slate-300">${r['Printer '] || r['Printer'] || '-'}</td>
-                <td class="text-xs text-slate-300 max-w-[200px] truncate" title="${r['O.S. & Programes'] || ''}">${r['O.S. & Programes'] || '-'}</td>
-                <td class="text-xs text-slate-300 loc-search-val">${r['Branche \\ Location '] || r['Branche \\ Location'] || '-'}</td>
-                <td class="text-xs font-mono text-yellow-400">${r['pass usb'] || '-'}</td>
-                <td class="text-xs font-mono text-yellow-400">${r['pass win'] || '-'}</td>
-                <td class="text-xs text-slate-300">${r['Phone and serial number'] || '-'}</td>
-                <td class="text-center bg-slate-900 sticky left-0 shadow-[-5px_0_10px_rgba(0,0,0,0.3)] border-r border-slate-700/50 z-10">
+                <td class="p-4 font-bold text-slate-400 text-center">${count}</td>
+                <td class="p-4 font-bold text-white emp-search-val text-right whitespace-nowrap">${empDisplay}</td>
+                <td class="p-4 text-xs text-slate-300 text-center">${r['Computer Name'] || '-'}</td>
+                <td class="p-4 font-mono text-sm serial-search-val text-center" dir="ltr">${coloredSerial}</td>
+                <td class="p-4 text-xs text-slate-300 text-center">${r['User Name'] || '-'}</td>
+                <td class="p-4 text-xs text-slate-300 os-search-val text-center"><span class="bg-slate-800 px-2 py-1 rounded border border-slate-700">${r['O.S'] || '-'}</span></td>
+                <td class="p-4 text-xs text-slate-300 max-w-[150px] truncate text-center" title="${r['Model'] || ''}">${r['Model'] || '-'}</td>
+                <td class="p-4 text-xs text-slate-300 max-w-[350px] truncate text-center" title="${hwRaw}" dir="ltr">${coloredHardware}</td>
+                <td class="p-4 text-xs text-slate-300 text-center">${r['Printer '] || r['Printer'] || '-'}</td>
+                <td class="p-4 text-xs text-slate-300 max-w-[200px] truncate text-center" title="${r['O.S. & Programes'] || ''}">${r['O.S. & Programes'] || '-'}</td>
+                <td class="p-4 text-xs text-slate-300 loc-search-val text-center">${r['Branche \\ Location '] || r['Branche \\ Location'] || '-'}</td>
+                <td class="p-4 text-xs font-mono text-yellow-400 text-center">${r['pass usb'] || '-'}</td>
+                <td class="p-4 text-xs font-mono text-yellow-400 text-center">${r['pass win'] || '-'}</td>
+                <td class="p-4 text-xs text-slate-300 text-center">${r['Phone and serial number'] || '-'}</td>
+                <td class="p-4 text-center bg-slate-900 sticky left-0 shadow-[-5px_0_10px_rgba(0,0,0,0.3)] border-r border-slate-700/50 z-10">
                     <div class="flex justify-center gap-1">
                         ${empName !== '' ? `<button onclick="revokeAsset(${index})" title="سحب العهدة" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-2 py-1.5 rounded shadow transition text-xs"><i class="fa-solid fa-arrow-rotate-left"></i></button>` : ''}
                         <button onclick="openAssetEdit(${index})" class="bg-slate-700 hover:bg-cyan-600 text-white px-3 py-1.5 rounded shadow transition text-xs font-bold"><i class="fa-solid fa-pen"></i></button>
@@ -510,11 +506,11 @@ async function loadLogs() {
             if(!cols[0]) return; 
             html += `
                 <tr class="data-row hover:bg-slate-800/50 transition border-b border-slate-700/50">
-                    <td class="p-4 font-mono text-cyan-300 text-xs">${cols[0] || '-'}</td>
-                    <td class="p-4 font-bold text-white"><span class="bg-purple-500/20 text-purple-400 px-3 py-1 rounded text-xs">${cols[1] || '-'}</span></td>
-                    <td class="p-4 text-slate-300 text-xs">${cols[2] || '-'}</td>
-                    <td class="p-4 text-slate-300 font-bold">${cols[3] || '-'}</td>
-                    <td class="p-4 text-cyan-400 font-bold text-xs"><i class="fa-solid fa-user-shield mr-1"></i>${cols[4] || 'غير معروف'}</td>
+                    <td class="p-4 font-mono text-cyan-300 text-xs text-center">${cols[0] || '-'}</td>
+                    <td class="p-4 font-bold text-white text-center"><span class="bg-purple-500/20 text-purple-400 px-3 py-1 rounded text-xs">${cols[1] || '-'}</span></td>
+                    <td class="p-4 text-slate-300 text-xs text-center">${cols[2] || '-'}</td>
+                    <td class="p-4 text-slate-300 font-bold text-center">${cols[3] || '-'}</td>
+                    <td class="p-4 text-cyan-400 font-bold text-xs text-center"><i class="fa-solid fa-user-shield mr-1"></i>${cols[4] || 'غير معروف'}</td>
                 </tr>`;
         });
         tbody.innerHTML = html || '<tr><td colspan="5" class="text-center py-20 text-slate-500">لا توجد حركات مسجلة</td></tr>';
@@ -523,4 +519,4 @@ async function loadLogs() {
 
 // الشبكات
 function openNetworksModal() { openModal('networks-modal'); loadNetworks(); }
-async function loadNetworks() { document.getElementById('networks-tbody').innerHTML='<tr><td colspan="5" class="text-center py-20"><span class="loader"></span></td></tr>'; try{ const res=await fetch(`${API_URL}?type=networks`); const data=await res.json(); let h=''; data.forEach(r=>{if(!r['اسم الشبكه '])return; h+=`<tr class="data-row"><td class="p-4 font-bold text-white"><i class="fa-solid fa-location-dot text-slate-500 ml-2"></i>${r['فرع']||'-'}</td><td class="p-4 text-cyan-300 font-bold">${r['اسم الشبكه ']||'-'}</td><td class="p-4 text-green-400 font-mono">${r['قوه شبكه  db']||'-'} db</td><td class="p-4 text-xs max-w-[200px] truncate" title="${r['الاجهزه ']}">${r['الاجهزه ']}</td><td class="p-4 font-bold text-center">${r['عدد روتر ']||'-'}</td></tr>`;}); document.getElementById('networks-tbody').innerHTML=h||'<tr><td colspan="5" class="text-center py-20 text-slate-500">لا توجد بيانات</td></tr>'; }catch(e){ document.getElementById('networks-tbody').innerHTML='<tr><td colspan="5" class="text-center py-20 text-red-500">خطأ</td></tr>'; } }
+async function loadNetworks() { document.getElementById('networks-tbody').innerHTML='<tr><td colspan="5" class="text-center py-20"><span class="loader"></span></td></tr>'; try{ const res=await fetch(`${API_URL}?type=networks`); const data=await res.json(); let h=''; data.forEach(r=>{if(!r['اسم الشبكه '])return; h+=`<tr class="data-row"><td class="p-4 font-bold text-white text-center"><i class="fa-solid fa-location-dot text-slate-500 ml-2"></i>${r['فرع']||'-'}</td><td class="p-4 text-cyan-300 font-bold text-center">${r['اسم الشبكه ']||'-'}</td><td class="p-4 text-green-400 font-mono text-center">${r['قوه شبكه  db']||'-'} db</td><td class="p-4 text-xs max-w-[200px] truncate text-center" title="${r['الاجهزه ']}">${r['الاجهزه ']}</td><td class="p-4 font-bold text-center">${r['عدد روتر ']||'-'}</td></tr>`;}); document.getElementById('networks-tbody').innerHTML=h||'<tr><td colspan="5" class="text-center py-20 text-slate-500">لا توجد بيانات</td></tr>'; }catch(e){ document.getElementById('networks-tbody').innerHTML='<tr><td colspan="5" class="text-center py-20 text-red-500">خطأ</td></tr>'; } }
