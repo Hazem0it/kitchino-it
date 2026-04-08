@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbzWfAvRZKIN1h0XzrFNab_1kSsMxNgUuDZDiaRCgsixRWITR3QQf-z1kzjl6oMfLh_6/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwmLB5K3bBNf00lB95wON3trVX083tCY20kVJsLMOjFCQNnogXR8Mq7va_F9sjhaDzC4g/exec';
 
 function normalizeArabic(text) {
     if (!text) return '';
@@ -319,6 +319,7 @@ let currentAssetsData = [];
 function openAssetsModal() { 
     openModal('assets-modal'); 
     loadBranchData(); 
+    // تفريغ الفلاتر فقط عند فتح النافذة لأول مرة
     document.getElementById('asset-search').value = ''; 
     document.getElementById('status-filter').value = 'all'; 
     document.getElementById('location-filter').value = 'all';
@@ -335,6 +336,10 @@ async function loadBranchData() {
         updateLocationDropdown(currentAssetsData);
         renderAssetsTable();
         makeTableResizable(); 
+        
+        // 🚀 السر كله هنا: تطبيق الفلاتر الحالية (لو موجودة) على الداتا الجديدة
+        searchAssets(); 
+        
     } catch(e) { tbody.innerHTML = '<tr><td colspan="15" class="text-center py-20 text-red-500">حدث خطأ أثناء الجلب</td></tr>'; }
 }
 
@@ -411,6 +416,16 @@ function renderAssetsTable() {
     tbody.innerHTML = html || '<tr><td colspan="15" class="text-center py-20 text-slate-500">لا توجد بيانات مسجلة في هذا الفرع</td></tr>';
 }
 
+function revokeAsset(index) {
+    if(!checkPermission()) return;
+    if(!confirm("هل أنت متأكد أنك تريد سحب هذا الجهاز وجعله متوفر؟")) return;
+    document.getElementById('a-old-serial').value = currentAssetsData[index]['Board Serial Number'] || currentAssetsData[index]['سيريال لاب توب'] || '';
+    document.getElementById('a-serial').value = document.getElementById('a-old-serial').value;
+    document.getElementById('a-emp').value = ""; 
+    document.getElementById('a-comp').value = currentAssetsData[index]['Computer Name'] || ''; document.getElementById('a-user').value = currentAssetsData[index]['User Name'] || ''; document.getElementById('a-os').value = currentAssetsData[index]['O.S'] || ''; document.getElementById('a-model').value = currentAssetsData[index]['Model'] || ''; document.getElementById('a-hard').value = currentAssetsData[index]['Hardware'] || currentAssetsData[index]['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = currentAssetsData[index]['Printer '] || currentAssetsData[index]['Printer'] || ''; document.getElementById('a-prog').value = currentAssetsData[index]['O.S. & Programes'] || ''; document.getElementById('a-loc').value = currentAssetsData[index]['Branche \\ Location '] || currentAssetsData[index]['Branche \\ Location'] || ''; document.getElementById('a-usb').value = currentAssetsData[index]['pass usb'] || ''; document.getElementById('a-win').value = currentAssetsData[index]['pass win'] || ''; document.getElementById('a-phone').value = currentAssetsData[index]['Phone and serial number'] || '';
+    saveAssetChanges();
+}
+
 function searchAssets() {
     const inputRaw = document.getElementById('asset-search').value.toLowerCase();
     const input = normalizeArabic(inputRaw);
@@ -475,16 +490,6 @@ async function saveAssetChanges() {
     const actionType = currentSerial === '' ? "add_asset" : "update_asset";
     const payload = { action: actionType, branch: document.getElementById('branch-select').value, old_serial: currentSerial, admin: document.getElementById('display-user-name').innerText, updates: { "Board Serial Number": document.getElementById('a-serial').value, "اسم الموظف": newEmpName, "Computer Name": document.getElementById('a-comp').value, "User Name": document.getElementById('a-user').value, "O.S": document.getElementById('a-os').value, "Model": document.getElementById('a-model').value, "Hardware": document.getElementById('a-hard').value, "Printer": document.getElementById('a-print').value, "O.S. & Programes": document.getElementById('a-prog').value, "Branche \\ Location": document.getElementById('a-loc').value, "pass usb": document.getElementById('a-usb').value, "pass win": document.getElementById('a-win').value, "Phone and serial number": document.getElementById('a-phone').value } };
     try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); const json = await res.json(); if(json.success) { showToast('تم الحفظ بنجاح!'); closeModal('asset-edit-modal'); loadBranchData(); } else showToast(json.message, true); } catch(e) { showToast('خطأ بالاتصال', true); } finally { btn.innerHTML = 'حفظ البيانات'; btn.disabled = false; }
-}
-
-function revokeAsset(index) {
-    if(!checkPermission()) return;
-    if(!confirm("هل أنت متأكد أنك تريد سحب هذا الجهاز وجعله متوفر؟")) return;
-    document.getElementById('a-old-serial').value = currentAssetsData[index]['Board Serial Number'] || currentAssetsData[index]['سيريال لاب توب'] || '';
-    document.getElementById('a-serial').value = document.getElementById('a-old-serial').value;
-    document.getElementById('a-emp').value = ""; 
-    document.getElementById('a-comp').value = currentAssetsData[index]['Computer Name'] || ''; document.getElementById('a-user').value = currentAssetsData[index]['User Name'] || ''; document.getElementById('a-os').value = currentAssetsData[index]['O.S'] || ''; document.getElementById('a-model').value = currentAssetsData[index]['Model'] || ''; document.getElementById('a-hard').value = currentAssetsData[index]['Hardware'] || currentAssetsData[index]['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = currentAssetsData[index]['Printer '] || currentAssetsData[index]['Printer'] || ''; document.getElementById('a-prog').value = currentAssetsData[index]['O.S. & Programes'] || ''; document.getElementById('a-loc').value = currentAssetsData[index]['Branche \\ Location '] || currentAssetsData[index]['Branche \\ Location'] || ''; document.getElementById('a-usb').value = currentAssetsData[index]['pass usb'] || ''; document.getElementById('a-win').value = currentAssetsData[index]['pass win'] || ''; document.getElementById('a-phone').value = currentAssetsData[index]['Phone and serial number'] || '';
-    saveAssetChanges();
 }
 
 // --- سجل الحركات (Logs) ---
