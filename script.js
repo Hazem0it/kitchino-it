@@ -5,7 +5,6 @@ function normalizeArabic(text) {
     return text.replace(/[أإآا]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ً|ٌ|ٍ|َ|ُ|ِ|ّ|ْ/g, '');
 }
 
-// دالة تلوين النصوص المفصولة بـ /
 function colorizeText(text) {
     if (!text) return '-';
     const colors = ['text-cyan-300', 'text-green-400', 'text-purple-300', 'text-yellow-400', 'text-pink-300'];
@@ -91,8 +90,12 @@ function openModal(id) { document.getElementById(id).classList.remove('hidden');
 function closeModal(id) { document.getElementById(id).classList.add('opacity-0'); setTimeout(()=>document.getElementById(id).classList.add('hidden'),300); }
 function openSettingsModal() { openModal('settings-modal'); }
 
-// --- التذاكر الذكية ---
+// ==========================================
+// 🚀 قسم التذاكر الذكية (الشركة -> الفرع -> الموظف)
+// ==========================================
 let allTicketsData = []; let currentFilter = 'all';
+let currentTicketAssets = []; // لتخزين بيانات أجهزة الشركة المحددة
+
 function openTicketsModal() { openModal('tickets-modal'); loadTickets(); }
 
 async function loadTickets() { 
@@ -119,7 +122,6 @@ function renderTickets() {
     const tb=document.getElementById('tickets-tbody'); 
     let h=''; 
     allTicketsData.filter(r => {
-        // فلتر ذكي لتجاهل الصفوف الوهمية التي لا تحتوي على مشكلة أو مستخدم
         const userName = (r['اسم المستخدم'] || r['المستخدم'] || '').trim();
         const problem = (r['مشكله'] || r['المشكلة'] || '').trim();
         if (!r['رقم التيكت'] || (!userName && !problem)) return false; 
@@ -137,54 +139,90 @@ function renderTickets() {
     tb.innerHTML=h||'<tr><td colspan="8" class="text-center py-20 text-slate-500">لا توجد تذاكر متطابقة</td></tr>'; 
 }
 
-// دالة سحب الموظفين بناءً على الفرع للتذاكر
-async function loadUsersForTicket(selectedUser = '') {
-    const branch = document.getElementById('t-branch').value;
+// 🚀 سحب بيانات الشركة (الفروع والموظفين) للتذكرة
+async function loadCompanyDataForTicket(selectedLoc = '', selectedUser = '') {
+    const company = document.getElementById('t-company').value;
+    const locSelect = document.getElementById('t-location');
     const userSelect = document.getElementById('t-user');
     
-    if (!branch) {
-        userSelect.innerHTML = '<option value="">اختر الفرع أولاً...</option>';
+    if (!company) {
+        locSelect.innerHTML = '<option value="">اختر الشركة أولاً...</option>';
+        userSelect.innerHTML = '<option value="">اختر الشركة أولاً...</option>';
+        currentTicketAssets = [];
         return;
     }
 
-    userSelect.innerHTML = '<option value="">جاري سحب الموظفين...</option>';
+    locSelect.innerHTML = '<option value="">جاري التحميل...</option>';
+    userSelect.innerHTML = '<option value="">جاري التحميل...</option>';
+
     try {
-        const res = await fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(branch)}`);
-        const data = await res.json();
+        const res = await fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(company)}`);
+        currentTicketAssets = await res.json();
         
-        const uniqueUsers = new Set();
-        data.forEach(r => {
-            const empName = (r['اسم الموظف'] || '').trim();
-            if (empName) uniqueUsers.add(empName);
+        // استخراج الفروع (Locations) بدون تكرار
+        const uniqueLocs = new Set();
+        currentTicketAssets.forEach(r => {
+            const loc = (r['Branche \\ Location '] || r['Branche \\ Location'] || '').trim();
+            if (loc && loc !== '-') uniqueLocs.add(loc);
         });
-
-        let html = '<option value="">-- اختر الموظف --</option>';
-        Array.from(uniqueUsers).sort().forEach(user => {
-            html += `<option value="${user}">${user}</option>`;
+        
+        let locHtml = '<option value="">-- كل الفروع --</option>';
+        Array.from(uniqueLocs).sort().forEach(loc => {
+            locHtml += `<option value="${loc}">${loc}</option>`;
         });
-        userSelect.innerHTML = html;
+        locSelect.innerHTML = locHtml;
 
-        if (selectedUser && uniqueUsers.has(selectedUser)) {
-            userSelect.value = selectedUser;
-        } else if (selectedUser) {
-            userSelect.innerHTML += `<option value="${selectedUser}">${selectedUser}</option>`;
-            userSelect.value = selectedUser;
-        }
+        if (selectedLoc && uniqueLocs.has(selectedLoc)) locSelect.value = selectedLoc;
+        else if (selectedLoc) { locSelect.innerHTML += `<option value="${selectedLoc}">${selectedLoc}</option>`; locSelect.value = selectedLoc; }
+
+        // تصفية الموظفين بناءً على الفرع المحدد
+        filterUsersByLocation(selectedUser);
+
     } catch (e) {
-        userSelect.innerHTML = '<option value="">خطأ في التحميل</option>';
+        locSelect.innerHTML = '<option value="">خطأ بالتحميل</option>';
+        userSelect.innerHTML = '<option value="">خطأ بالتحميل</option>';
     }
 }
 
-// دالة إضافة موظف جديد من داخل نافذة التذكرة
+// 🚀 تصفية الموظفين عند تغيير الفرع
+function filterUsersByLocation(selectedUser = '') {
+    const locSelect = document.getElementById('t-location').value;
+    const userSelect = document.getElementById('t-user');
+    
+    const uniqueUsers = new Set();
+    currentTicketAssets.forEach(r => {
+        const rLoc = (r['Branche \\ Location '] || r['Branche \\ Location'] || '').trim();
+        const empName = (r['اسم الموظف'] || '').trim();
+        if (empName) {
+            // لو مفيش فرع محدد، اعرض كل موظفين الشركة، أو اعرض موظفين الفرع ده بس
+            if (!locSelect || locSelect === rLoc) {
+                uniqueUsers.add(empName);
+            }
+        }
+    });
+
+    let userHtml = '<option value="">-- اختر الموظف --</option>';
+    Array.from(uniqueUsers).sort().forEach(user => {
+        userHtml += `<option value="${user}">${user}</option>`;
+    });
+    userSelect.innerHTML = userHtml;
+
+    if (selectedUser && uniqueUsers.has(selectedUser)) userSelect.value = selectedUser;
+    else if (selectedUser) { userSelect.innerHTML += `<option value="${selectedUser}">${selectedUser}</option>`; userSelect.value = selectedUser; }
+}
+
+// 🚀 إضافة موظف جديد لفرع محدد
 async function addNewUserFromTicket() {
     if(!checkPermission()) return;
-    const branch = document.getElementById('t-branch').value;
-    if (!branch) return showToast('يرجى اختيار الفرع أولاً من القائمة', true);
+    const company = document.getElementById('t-company').value;
+    if (!company) return showToast('يرجى اختيار الشركة أولاً', true);
 
     const newName = prompt('أدخل اسم الموظف الجديد:');
     if (!newName || newName.trim() === '') return;
     
-    const newLocation = prompt(`أدخل الموقع/القسم الخاص بـ ${newName}:`, 'مكتب عام');
+    let currentLoc = document.getElementById('t-location').value;
+    const newLocation = prompt(`أدخل الفرع الخاص بـ ${newName}:`, currentLoc || 'الفرع الرئيسي');
+    if(newLocation === null) return; 
     
     const userSelect = document.getElementById('t-user');
     userSelect.innerHTML += `<option value="${newName}" selected>جاري التسجيل...</option>`;
@@ -192,12 +230,12 @@ async function addNewUserFromTicket() {
 
     const payload = {
         action: "add_asset",
-        branch: branch,
+        branch: company,
         admin: document.getElementById('display-user-name').innerText,
         updates: {
             "Board Serial Number": "PENDING-" + Math.floor(Math.random() * 100000),
             "اسم الموظف": newName,
-            "Branche \\ Location": newLocation || ''
+            "Branche \\ Location": newLocation
         }
     };
 
@@ -205,41 +243,53 @@ async function addNewUserFromTicket() {
         const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: {'Content-Type': 'text/plain;charset=utf-8'} });
         const json = await res.json();
         if(json.success) {
-            showToast(`تم إضافة ${newName} لقاعدة البيانات!`);
-            await loadUsersForTicket(newName); 
+            showToast(`تم إضافة ${newName} لفرع ${newLocation}!`);
+            await loadCompanyDataForTicket(newLocation, newName); 
         } else {
             showToast(json.message, true);
-            await loadUsersForTicket(); 
+            await loadCompanyDataForTicket(); 
         }
-    } catch(e) {
-        showToast('خطأ بالاتصال', true);
-    }
+    } catch(e) { showToast('خطأ بالاتصال', true); }
 }
 
-// دالة فتح فورم التذاكر الذكي
+// 🚀 فتح التذكرة وتجهيز الداتا
 async function openTicketForm(idx=-1) { 
     openModal('ticket-form-modal');
     
     if(idx===-1){ 
         document.getElementById('ticket-form-title').innerHTML='<i class="fa-solid fa-plus text-red-500 ml-2"></i>إضافة تذكرة جديدة'; 
         document.getElementById('t-id').value=''; 
-        document.getElementById('t-branch').value=''; 
-        document.getElementById('t-user').innerHTML='<option value="">اختر الفرع أولاً...</option>'; 
+        document.getElementById('t-company').value=''; 
+        document.getElementById('t-location').innerHTML='<option value="">اختر الشركة أولاً...</option>'; 
+        document.getElementById('t-user').innerHTML='<option value="">اختر الشركة أولاً...</option>'; 
         document.getElementById('t-problem').value=''; 
         document.getElementById('t-status').value='مفتوحة'; 
         document.getElementById('t-report').value=new Date().toISOString().split('T')[0]; 
         document.getElementById('t-solve').value=''; 
         document.getElementById('t-reason').value=''; 
+        currentTicketAssets = [];
     }else{ 
         const r=allTicketsData[idx]; 
         document.getElementById('ticket-form-title').innerHTML='<i class="fa-solid fa-pen text-red-500 ml-2"></i>تعديل التذكرة #' + r['رقم التيكت']; 
         document.getElementById('t-id').value=r['رقم التيكت']; 
         
-        document.getElementById('t-branch').value=r['الفرع']||''; 
-        
-        if (r['الفرع']) {
-            await loadUsersForTicket(r['اسم المستخدم']);
+        // فصل الشركة والفرع اللي متسجلين في شيت التذاكر (مثال: kitchino - التجمع)
+        let savedBranch = r['الفرع'] || '';
+        let comp = '', loc = '';
+        if(savedBranch.includes(' - ')) {
+            const parts = savedBranch.split(' - ');
+            comp = parts[0];
+            loc = parts.slice(1).join(' - ');
         } else {
+            comp = savedBranch;
+        }
+
+        document.getElementById('t-company').value = comp; 
+        
+        if (comp) {
+            await loadCompanyDataForTicket(loc, r['اسم المستخدم']);
+        } else {
+            document.getElementById('t-location').innerHTML = `<option value="">--</option>`;
             document.getElementById('t-user').innerHTML = `<option value="${r['اسم المستخدم']}">${r['اسم المستخدم']}</option>`;
             document.getElementById('t-user').value = r['اسم المستخدم'] || '';
         }
@@ -254,15 +304,24 @@ async function openTicketForm(idx=-1) {
     } 
 }
 
+// 🚀 حفظ التذكرة مدمج فيها الشركة + الفرع
 async function saveTicket() { 
     if(!checkPermission()) return;
     const btn=document.getElementById('save-ticket-btn'); btn.innerHTML='<span class="loader !w-5 !h-5"></span>'; btn.disabled=true; 
     
-    const p={action:"save_ticket",is_new:document.getElementById('t-id').value==='',admin:document.getElementById('display-user-name').innerText,ticket_data:{id:document.getElementById('t-id').value,user:document.getElementById('t-user').value,problem:document.getElementById('t-problem').value,branch:document.getElementById('t-branch').value,status:document.getElementById('t-status').value,report_date:document.getElementById('t-report').value,solve_date:document.getElementById('t-solve').value,reason:document.getElementById('t-reason').value,notes:''}}; 
+    // دمج الشركة مع الفرع للحفظ في الإكسيل
+    const comp = document.getElementById('t-company').value;
+    const loc = document.getElementById('t-location').value;
+    const fullBranch = loc ? `${comp} - ${loc}` : comp;
+
+    const p={action:"save_ticket",is_new:document.getElementById('t-id').value==='',admin:document.getElementById('display-user-name').innerText,ticket_data:{id:document.getElementById('t-id').value,user:document.getElementById('t-user').value,problem:document.getElementById('t-problem').value,branch:fullBranch,status:document.getElementById('t-status').value,report_date:document.getElementById('t-report').value,solve_date:document.getElementById('t-solve').value,reason:document.getElementById('t-reason').value,notes:''}}; 
+    
     try{ const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(p),headers:{'Content-Type':'text/plain;charset=utf-8'}}); const j=await res.json(); if(j.success){showToast(j.message);closeModal('ticket-form-modal');loadTickets();}else showToast(j.message,true); }catch(e){showToast('خطأ بالاتصال',true);}finally{btn.innerHTML='حفظ التذكرة';btn.disabled=false;} 
 }
 
+// ==========================================
 // --- الأصول وتكبير الأعمدة والفلترة الذكية ---
+// ==========================================
 let currentAssetsData = [];
 
 function openAssetsModal() { 
