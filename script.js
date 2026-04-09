@@ -15,6 +15,7 @@ function colorizeText(text) {
     }).join('<span class="text-slate-600 font-black mx-2">/</span>');
 }
 
+// 🚀 نظام الحسابات الدائم (مستقل عن تحديثات الكود)
 let defaultUsers = [
     { username: 'hazem', pass: '12345', role: 'Admin' },
     { username: 'admin', pass: '12345', role: 'Admin' },
@@ -28,6 +29,8 @@ function saveUsersLocally() {
 
 let currentUserRole = ''; 
 let inactivityTimer;
+
+// 🚀 متغيرات الكاش الذكي
 let isAssetsLoaded = false, currentAssetsBranch = '';
 let isTicketsLoaded = false;
 let isNetworksLoaded = false;
@@ -42,6 +45,7 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('display-user-name').innerText = userObj.username;
         document.getElementById('display-user-role').innerText = userObj.role;
         startInactivityTimer();
+        // 🚀 سحب البيانات في الخلفية
         preloadData();
     }
 });
@@ -64,6 +68,7 @@ function handleLogin() {
             document.getElementById('display-user-role').innerText = v.role;
             showToast('جاري تجهيز بيانات النظام في الخلفية...');
             startInactivityTimer();
+            // 🚀 سحب البيانات في الخلفية فور الدخول
             preloadData();
         }, 500);
     } else { showToast('خطأ في اسم المستخدم أو كلمة المرور', true); }
@@ -74,6 +79,7 @@ function logout() {
     document.getElementById('main-dashboard').classList.add('hidden'); 
     document.getElementById('login-view').classList.remove('hidden','opacity-0'); 
     document.getElementById('login-user').value = ''; document.getElementById('login-pass').value = ''; currentUserRole = '';
+    // تصفير الكاش
     isAssetsLoaded = false; isTicketsLoaded = false; isNetworksLoaded = false;
 }
 
@@ -82,19 +88,23 @@ function checkPermission() {
     return true;
 }
 
+// 🚀 دالة سحب الداتا في الخلفية (Pre-fetch)
 function preloadData() {
     const branch = document.getElementById('branch-select')?.value || 'kitchino';
     
+    // الأصول
     fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(branch)}`)
         .then(res => res.json())
         .then(data => { currentAssetsData = data; currentAssetsBranch = branch; isAssetsLoaded = true; })
         .catch(e => console.log('Asset preload failed'));
         
+    // التذاكر
     fetch(`${API_URL}?type=tickets`)
         .then(res => res.json())
         .then(data => { allTicketsData = data; isTicketsLoaded = true; })
         .catch(e => console.log('Tickets preload failed'));
 
+    // الشبكات
     fetch(`${API_URL}?type=networks`)
         .then(res => res.json())
         .then(data => { 
@@ -555,7 +565,7 @@ function toggleAllPrintSelection(masterCheckbox) {
     });
 }
 
-// 🚀 دالة طباعة كشف A4 مجمع باحترافية كاملة (Letterhead Style) (النسخة النهائية الصارمة)
+// 🚀 دالة طباعة كشف A4 مجمع باحترافية كاملة (النسخة السحرية للطباعة)
 function printSelectedEmployees() {
     if (selectedEmployeesForPrint.length === 0) {
         showToast('برجاء تحديد موظف واحد على الأقل من الجدول أولاً', true);
@@ -577,42 +587,48 @@ function printSelectedEmployees() {
                 @page { size: A4; margin: 10mm; } 
                 body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; color: #333; background: #fff; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                 
-                table.main-layout { width: 100%; border-collapse: collapse; border: none; }
-                table.main-layout > thead > tr > td, table.main-layout > tbody > tr > td, table.main-layout > tfoot > tr > td { border: none; padding: 0; background: none; }
-                
-                .header-strip { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); border-bottom: 12px solid #16a34a; display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; color: #fff; margin-bottom: 20px; }
+                /* العلامة المائية */
+                .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 160pt; font-weight: 900; color: rgba(0, 0, 0, 0.04); font-family: Arial, sans-serif; pointer-events: none; z-index: -1; }
+
+                /* الهيكل الأساسي للطباعة */
+                table.master-table { width: 100%; border-collapse: collapse; border: none; }
+                table.master-table > thead { display: table-header-group; }
+                table.master-table > tfoot { display: table-footer-group; }
+                table.master-table > tbody > tr > td, 
+                table.master-table > thead > tr > td, 
+                table.master-table > tfoot > tr > td { border: none; padding: 0; background: transparent; }
+
+                /* الهيدر والفوتر باللون الأخضر العريض */
+                .header-strip { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); border-bottom: 8px solid #16a34a; display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; color: #fff; margin-bottom: 15px; }
                 .header-title { text-align: right; width: 100%; }
-                .header-title h1 { margin: 0; font-size: 26pt; font-weight: 900; letter-spacing: -1px; }
-                .header-title p { margin: 5pt 0 0; font-size: 12pt; opacity: 0.9; font-weight: bold;}
+                .header-title h1 { margin: 0; font-size: 24pt; font-weight: 900; letter-spacing: -1px; }
+                .header-title p { margin: 5px 0 0; font-size: 11pt; font-weight: bold; opacity: 0.9; }
 
-                .footer-strip { background: linear-gradient(135deg, #1e3a8a 0%, #1e293b 100%); border-top: 12px solid #16a34a; padding: 10px; text-align: center; color: rgba(255,255,255,0.8); font-size: 10pt; margin-top: 20px; }
+                .footer-strip { background: linear-gradient(135deg, #1e3a8a 0%, #1e293b 100%); border-top: 8px solid #16a34a; padding: 12px; text-align: center; color: rgba(255,255,255,0.8); font-size: 10pt; margin-top: 15px; }
 
-                .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 150pt; font-weight: 900; color: rgba(0, 0, 0, 0.04); font-family: Arial, sans-serif; pointer-events: none; z-index: -1; }
+                /* العنوان الرئيسي متظبط مسافاته */
+                .report-header { text-align: center; margin-top: 0; margin-bottom: 25px; }
+                .report-header h2 { font-size: 20pt; color: #1e293b; border-bottom: 3px solid #16a34a; padding-bottom: 8px; display: inline-block; font-weight: 900; margin: 0;}
 
-                .content-wrapper { padding: 0 10px; }
-                .report-header { text-align: center; margin: 10px 0 30px 0; }
-                .report-header h2 { font-size: 22pt; color: #1e293b; border-bottom: 3px solid #16a34a; padding-bottom: 10px; display: inline-block; font-weight: 900;}
+                /* تنسيق الجداول والصفوف */
+                .company-box { margin-bottom: 30px; } 
+                .company-header { background-color: #f8fafc; padding: 12px 20px; border: 2px solid #cbd5e1; border-bottom: none; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0;}
+                .company-name { color: #16a34a; font-weight: 900; font-size: 18px;}
+                .emp-count { background: #1e3a8a; color: #fff; padding: 4px 15px; border-radius: 20px; font-size: 13px; font-weight: bold;}
                 
-                .company-box { margin-bottom: 40px; border: 2px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
-                
-                .company-header { background-color: #f8fafc; padding: 15px 20px; border-bottom: 2px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;}
-                .company-name { color: #16a34a; font-weight: 900; font-size: 20px;}
-                .emp-count { background: #1e3a8a; color: #fff; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold;}
-                
-                table.data-table { width: 100%; border-collapse: collapse; }
-                table.data-table th, table.data-table td { border-bottom: 1px solid #cbd5e1; padding: 12px 20px; text-align: right; }
-                table.data-table th { background-color: #fff; font-weight: 900; color: #1e3a8a; width: 50%; font-size: 16px;}
-                table.data-table td { font-size: 15px; color: #334155; font-weight: bold;}
-                table.data-table tr:last-child td { border-bottom: none; }
+                table.data-table { width: 100%; border-collapse: collapse; border: 2px solid #cbd5e1; }
+                table.data-table thead { display: table-header-group; }
+                table.data-table th, table.data-table td { border: 1px solid #cbd5e1; padding: 10px 15px; text-align: right; }
+                table.data-table th { background-color: #fff; font-weight: 900; color: #1e3a8a; font-size: 15px; width: 50%;}
+                table.data-table td { font-size: 14px; color: #1e293b; font-weight: bold;}
+                table.data-table tr { page-break-inside: avoid; } 
                 table.data-table tr:nth-child(even) { background-color: #f1f5f9; }
-                
-                table.data-table tr { page-break-inside: avoid; }
             </style>
         </head>
         <body>
             <div class="watermark">IT</div>
             
-            <table class="main-layout">
+            <table class="master-table">
                 <thead>
                     <tr>
                         <td>
@@ -625,13 +641,21 @@ function printSelectedEmployees() {
                         </td>
                     </tr>
                 </thead>
+                <tfoot>
+                    <tr>
+                        <td>
+                            <div class="footer-strip">
+                                هذا التقرير تم إنشاؤه عبر نظام إدارة الأصول المركزي - Kitchino Group IT &copy; ${new Date().getFullYear()}
+                            </div>
+                        </td>
+                    </tr>
+                </tfoot>
                 <tbody>
                     <tr>
                         <td>
-                            <div class="content-wrapper">
-                                <div class="report-header">
-                                    <h2>كشف استلام وتسكين عُهد الموظفين</h2>
-                                </div>
+                            <div class="report-header">
+                                <h2>كشف استلام وتسكين عُهد الموظفين</h2>
+                            </div>
     `;
 
     for (const [company, emps] of Object.entries(grouped)) {
@@ -669,23 +693,12 @@ function printSelectedEmployees() {
     }
 
     html += `
-                            </div>
                         </td>
                     </tr>
                 </tbody>
-                <tfoot>
-                    <tr>
-                        <td>
-                            <div class="footer-strip">
-                                هذا التقرير تم إنشاؤه عبر نظام إدارة الأصول المركزي - Kitchino Group IT &copy; ${new Date().getFullYear()}
-                            </div>
-                        </td>
-                    </tr>
-                </tfoot>
             </table>
-            
             <script>
-                setTimeout(() => { window.print(); }, 1000);
+                setTimeout(() => { window.print(); }, 800);
             <\/script>
         </body>
         </html>
