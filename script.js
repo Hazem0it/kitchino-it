@@ -15,7 +15,6 @@ function colorizeText(text) {
     }).join('<span class="text-slate-600 font-black mx-2">/</span>');
 }
 
-// 🚀 نظام الحسابات الدائم (مستقل عن تحديثات الكود)
 let defaultUsers = [
     { username: 'hazem', pass: '12345', role: 'Admin' },
     { username: 'admin', pass: '12345', role: 'Admin' },
@@ -30,7 +29,6 @@ function saveUsersLocally() {
 let currentUserRole = ''; 
 let inactivityTimer;
 
-// 🚀 متغيرات الكاش الذكي
 let isAssetsLoaded = false, currentAssetsBranch = '';
 let isTicketsLoaded = false;
 let isNetworksLoaded = false;
@@ -45,7 +43,6 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('display-user-name').innerText = userObj.username;
         document.getElementById('display-user-role').innerText = userObj.role;
         startInactivityTimer();
-        // 🚀 سحب البيانات في الخلفية
         preloadData();
     }
 });
@@ -68,7 +65,6 @@ function handleLogin() {
             document.getElementById('display-user-role').innerText = v.role;
             showToast('جاري تجهيز بيانات النظام في الخلفية...');
             startInactivityTimer();
-            // 🚀 سحب البيانات في الخلفية فور الدخول
             preloadData();
         }, 500);
     } else { showToast('خطأ في اسم المستخدم أو كلمة المرور', true); }
@@ -79,7 +75,6 @@ function logout() {
     document.getElementById('main-dashboard').classList.add('hidden'); 
     document.getElementById('login-view').classList.remove('hidden','opacity-0'); 
     document.getElementById('login-user').value = ''; document.getElementById('login-pass').value = ''; currentUserRole = '';
-    // تصفير الكاش
     isAssetsLoaded = false; isTicketsLoaded = false; isNetworksLoaded = false;
 }
 
@@ -88,23 +83,19 @@ function checkPermission() {
     return true;
 }
 
-// 🚀 دالة سحب الداتا في الخلفية (Pre-fetch)
 function preloadData() {
     const branch = document.getElementById('branch-select')?.value || 'kitchino';
     
-    // الأصول
     fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(branch)}`)
         .then(res => res.json())
         .then(data => { currentAssetsData = data; currentAssetsBranch = branch; isAssetsLoaded = true; })
         .catch(e => console.log('Asset preload failed'));
         
-    // التذاكر
     fetch(`${API_URL}?type=tickets`)
         .then(res => res.json())
         .then(data => { allTicketsData = data; isTicketsLoaded = true; })
         .catch(e => console.log('Tickets preload failed'));
 
-    // الشبكات
     fetch(`${API_URL}?type=networks`)
         .then(res => res.json())
         .then(data => { 
@@ -175,7 +166,6 @@ let currentTicketAssets = [];
 
 function openTicketsModal() { openModal('tickets-modal'); loadTickets(); }
 
-// 🚀 تحديث لدعم الكاش
 async function loadTickets(force = false) { 
     const tb = document.getElementById('tickets-tbody');
     if (!force && isTicketsLoaded && allTicketsData.length > 0) {
@@ -413,14 +403,12 @@ function forceRefreshAssets() {
     loadBranchData(true);
 }
 
-// 🚀 تحديث لدعم الكاش
 async function loadBranchData(force = false) {
     const tbody = document.getElementById('assets-tbody');
     const branch = document.getElementById('branch-select').value;
     
     document.getElementById('selectAllCheckbox').checked = false;
 
-    // استخدام الكاش لو الداتا موجودة ومفيش طلب تحديث اجباري
     if (!force && isAssetsLoaded && currentAssetsBranch === branch && currentAssetsData.length > 0) {
         updateDeptDropdown(currentAssetsData);
         updateLocationDropdown(currentAssetsData);
@@ -587,53 +575,67 @@ function printSelectedEmployees() {
         <head>
             <title>كشف تسليم عُهد الموظفين - KITCHINO IT</title>
             <style>
-                @page { size: A4; margin: 0; }
-                body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; color: #333; background: #fff; margin: 0; padding: 0; position: relative; }
+                @page { size: A4; margin: 0; } 
+                body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; color: #333; background: #fff; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
                 
-                .header-strip { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); height: 35mm; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 25mm; box-sizing: border-box; color: #fff; border-bottom: 5px solid #ca8a04; }
-                .header-title { text-align: right; }
+                /* الشريط العلوي الثابت في كل الصفحات */
+                .header-strip { position: fixed; top: 0; left: 0; width: 100%; height: 30mm; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); border-bottom: 12px solid #16a34a; display: flex; justify-content: space-between; align-items: center; padding: 0 20mm; box-sizing: border-box; color: #fff; z-index: 1000; }
+                .header-title { text-align: right; width: 100%; }
                 .header-title h1 { margin: 0; font-size: 24pt; font-weight: 900; letter-spacing: -1px; }
-                .header-title p { margin: 5pt 0 0; font-size: 11pt; opacity: 0.8; font-weight: bold;}
+                .header-title p { margin: 5pt 0 0; font-size: 11pt; opacity: 0.9; font-weight: bold;}
 
-                .footer-strip { position: fixed; bottom: 0; left: 0; width: 100%; background: linear-gradient(135deg, #1e3a8a 0%, #1e293b 100%); height: 15mm; border-top: 3px solid #ca8a04; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.6); font-size: 9pt; }
+                /* الشريط السفلي الثابت في كل الصفحات */
+                .footer-strip { position: fixed; bottom: 0; left: 0; width: 100%; height: 15mm; background: linear-gradient(135deg, #1e3a8a 0%, #1e293b 100%); border-top: 12px solid #16a34a; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.8); font-size: 10pt; z-index: 1000; }
 
-                .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 180pt; font-weight: 900; color: rgba(0, 0, 0, 0.03); font-family: Arial, sans-serif; pointer-events: none; z-index: -1; }
+                .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 180pt; font-weight: 900; color: rgba(0, 0, 0, 0.04); font-family: Arial, sans-serif; pointer-events: none; z-index: -1; }
 
-                .main-content { padding: 15mm 25mm 25mm 25mm; box-sizing: border-box; }
+                /* خدعة الجدول للحفاظ على المسافات في كل صفحة */
+                .page-spacer-header { height: 35mm; }
+                .page-spacer-footer { height: 20mm; }
+
+                .content-wrapper { padding: 0 20mm; }
+
+                .report-header { text-align: center; margin: 20px 0; }
+                .report-header h2 { font-size: 20pt; color: #1e293b; border-bottom: 3px solid #16a34a; padding-bottom: 10px; display: inline-block; font-weight: 900;}
                 
-                .report-header { text-align: center; margin-bottom: 30px; }
-                .report-header h2 { font-size: 18pt; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; display: inline-block; }
+                .company-box { margin-bottom: 30px; page-break-inside: avoid; border: 2px solid #e2e8f0; border-radius: 8px; overflow: hidden;}
+                .company-header { background-color: #f8fafc; padding: 12px 20px; border-bottom: 2px solid #e2e8f0; font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;}
+                .company-name { color: #16a34a; font-weight: 900; font-size: 18px;}
+                .emp-count { background: #1e3a8a; color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;}
                 
-                .company-box { margin-bottom: 35px; page-break-inside: avoid; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;}
-                .company-header { background-color: #f1f5f9; padding: 10px 20px; border-bottom: 1px solid #e2e8f0; font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;}
-                .company-name { color: #1e3a8a; font-weight: 900;}
-                .emp-count { background: #ca8a04; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; }
-                
-                table { width: 100%; border-collapse: collapse; }
-                th, td { border-bottom: 1px solid #e2e8f0; padding: 12px 20px; text-align: right; }
-                th { background-color: #fff; font-weight: 900; color: #1e3a8a; width: 50%; font-size: 14px;}
-                td { font-size: 13px; color: #475569; }
-                tr:last-child td { border-bottom: none; }
-                tr:hover td { background-color: #f8fafc; }
+                .data-table { width: 100%; border-collapse: collapse; }
+                .data-table th, .data-table td { border-bottom: 1px solid #e2e8f0; padding: 12px 20px; text-align: right; }
+                .data-table th { background-color: #fff; font-weight: 900; color: #1e3a8a; width: 50%; font-size: 15px;}
+                .data-table td { font-size: 14px; color: #334155; font-weight: bold;}
+                .data-table tr:last-child td { border-bottom: none; }
+                .data-table tr:nth-child(even) { background-color: #f8fafc; }
             </style>
         </head>
         <body>
-            <div class="watermark">IT</div>
             <div class="header-strip">
                 <div class="header-title">
                     <h1>KITCHINO GROUP</h1>
                     <p>إدارة تكنولوجيا المعلومات | قطاع الدعم الفني والأصول</p>
                 </div>
             </div>
-            <div class="main-content">
-                <div class="report-header">
-                    <h2>كشف استلام وتسكين عُهد الموظفين</h2>
-                </div>
+            
+            <div class="watermark">IT</div>
+            
+            <div class="footer-strip">
+                هذا التقرير تم إنشاؤه عبر نظام إدارة الأصول المركزي - Kitchino Group IT &copy; ${new Date().getFullYear()}
+            </div>
+
+            <table>
+                <thead><tr><td><div class="page-spacer-header"></div></td></tr></thead>
+                <tbody><tr><td>
+                    <div class="content-wrapper">
+                        <div class="report-header">
+                            <h2>كشف استلام وتسكين عُهد الموظفين</h2>
+                        </div>
     `;
 
     for (const [company, emps] of Object.entries(grouped)) {
         const validEmps = emps.filter(emp => emp.name.trim() !== '' && emp.name.trim() !== '-');
-
         if (validEmps.length === 0) continue; 
 
         html += `
@@ -642,7 +644,7 @@ function printSelectedEmployees() {
                     <span>شركة / فرع: <span class="company-name">${company.toUpperCase()}</span></span>
                     <span class="emp-count">العدد المرفق: ${validEmps.length}</span>
                 </div>
-                <table>
+                <table class="data-table">
                     <thead>
                         <tr>
                             <th>اسم الموظف</th>
@@ -654,7 +656,7 @@ function printSelectedEmployees() {
         validEmps.forEach(emp => {
             html += `
                 <tr>
-                    <td><strong>${emp.name}</strong></td>
+                    <td>${emp.name}</td>
                     <td>${emp.title || 'غير محدد'}</td>
                 </tr>
             `;
@@ -667,10 +669,10 @@ function printSelectedEmployees() {
     }
 
     html += `
-            </div> 
-            <div class="footer-strip">
-                هذا التقرير تم إنشاؤه عبر نظام إدارة الأصول المركزي - Kitchino Group IT &copy; ${new Date().getFullYear()}
-            </div>
+                    </div>
+                </td></tr></tbody>
+                <tfoot><tr><td><div class="page-spacer-footer"></div></td></tr></tfoot>
+            </table>
             <script>
                 setTimeout(() => { 
                     window.print(); 
