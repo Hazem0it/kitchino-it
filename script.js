@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbzix4wbgRr7phVjFdwZ1H9ml35tidBIH1HNe-srpCMoF7t8vHU9NgU0w2bqCGW_Fyegxg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbw7wa0XqJRqMSlSFabVacfQDz8i84481eWfyRpcfPA9f2JCcLRA_PJFm-k5VMD2PT1v/exec';
 
 function normalizeArabic(text) {
     if (!text) return '';
@@ -15,7 +15,7 @@ function colorizeText(text) {
     }).join('<span class="text-slate-600 font-black mx-2">/</span>');
 }
 
-// 🚀 نظام الحسابات الدائم (مستقل عن تحديثات الكود)
+// 🚀 نظام الحسابات الدائم
 let defaultUsers = [
     { username: 'hazem', pass: '12345', role: 'Admin' },
     { username: 'admin', pass: '12345', role: 'Admin' },
@@ -30,6 +30,11 @@ function saveUsersLocally() {
 let currentUserRole = ''; 
 let inactivityTimer;
 
+// 🚀 متغيرات الكاش الذكي
+let isAssetsLoaded = false, currentAssetsBranch = '';
+let isTicketsLoaded = false;
+let isNetworksLoaded = false;
+
 window.addEventListener('DOMContentLoaded', () => {
     const savedUser = localStorage.getItem('kitchino_user');
     if(savedUser) {
@@ -40,6 +45,8 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('display-user-name').innerText = userObj.username;
         document.getElementById('display-user-role').innerText = userObj.role;
         startInactivityTimer();
+        // 🚀 سحب البيانات في الخلفية
+        preloadData();
     }
 });
 
@@ -59,8 +66,10 @@ function handleLogin() {
             document.getElementById('main-dashboard').classList.remove('hidden');
             document.getElementById('display-user-name').innerText = v.username;
             document.getElementById('display-user-role').innerText = v.role;
-            showToast('مرحباً بك في النظام');
+            showToast('جاري تجهيز بيانات النظام في الخلفية...');
             startInactivityTimer();
+            // 🚀 سحب البيانات في الخلفية فور الدخول
+            preloadData();
         }, 500);
     } else { showToast('خطأ في اسم المستخدم أو كلمة المرور', true); }
 }
@@ -70,11 +79,49 @@ function logout() {
     document.getElementById('main-dashboard').classList.add('hidden'); 
     document.getElementById('login-view').classList.remove('hidden','opacity-0'); 
     document.getElementById('login-user').value = ''; document.getElementById('login-pass').value = ''; currentUserRole = '';
+    // تصفير الكاش
+    isAssetsLoaded = false; isTicketsLoaded = false; isNetworksLoaded = false;
 }
 
 function checkPermission() {
     if (currentUserRole === 'Viewer') { showToast('عفواً، حسابك للمشاهدة فقط. غير مصرح لك بالتعديل.', true); return false; }
     return true;
+}
+
+// 🚀 دالة سحب الداتا في الخلفية (Pre-fetch)
+function preloadData() {
+    const branch = document.getElementById('branch-select')?.value || 'kitchino';
+    
+    // الأصول
+    fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(branch)}`)
+        .then(res => res.json())
+        .then(data => { currentAssetsData = data; currentAssetsBranch = branch; isAssetsLoaded = true; })
+        .catch(e => console.log('Asset preload failed'));
+        
+    // التذاكر
+    fetch(`${API_URL}?type=tickets`)
+        .then(res => res.json())
+        .then(data => { allTicketsData = data; isTicketsLoaded = true; })
+        .catch(e => console.log('Tickets preload failed'));
+
+    // الشبكات
+    fetch(`${API_URL}?type=networks`)
+        .then(res => res.json())
+        .then(data => { 
+            const keys = Object.keys(data[0] || {});
+            const deviceKeyIndex = keys.indexOf("اسم الاجهزه");
+            const branchKey = deviceKeyIndex > 1 ? keys[deviceKeyIndex - 1] : (keys.find(k => k === "" || k === "الفرع") || keys[1]);
+            let lastBranch = '';
+            allNetworksData = data.map(r => {
+                let currentVal = r[branchKey] !== undefined ? String(r[branchKey]).trim() : '';
+                if (currentVal !== '') { lastBranch = currentVal; r.isChild = false; } 
+                else { r.isChild = true; }
+                r.displayBranch = lastBranch;
+                return r;
+            });
+            isNetworksLoaded = true; 
+        })
+        .catch(e => console.log('Networks preload failed'));
 }
 
 function renderUsersTable() { 
@@ -94,7 +141,7 @@ function addUser() {
     const p = document.getElementById('new-password').value.trim(); 
     if(!u || !p) return showToast('يرجى كتابة البيانات', true); 
     usersDB.push({username: u, pass: p, role: document.getElementById('new-role').value}); 
-    saveUsersLocally(); // 🚀 حفظ الحساب الجديد في المتصفح
+    saveUsersLocally(); 
     renderUsersTable(); 
     document.getElementById('new-username').value = ''; 
     document.getElementById('new-password').value = ''; 
@@ -103,14 +150,14 @@ function addUser() {
 function changePass(i) { 
     if(!checkPermission()) return; 
     usersDB[i].pass = document.getElementById(`pass-${i}`).value; 
-    saveUsersLocally(); // 🚀
+    saveUsersLocally(); 
     showToast('تم تحديث كلمة المرور'); 
 }
 function deleteUser(i) { 
     if(!checkPermission()) return; 
     if(usersDB[i].username.toLowerCase() === 'hazem') return showToast('لا يمكن حذف حساب الإدارة الأساسي', true); 
     usersDB.splice(i,1); 
-    saveUsersLocally(); // 🚀
+    saveUsersLocally(); 
     renderUsersTable(); 
     showToast('تم الحذف'); 
 }
@@ -128,14 +175,21 @@ let currentTicketAssets = [];
 
 function openTicketsModal() { openModal('tickets-modal'); loadTickets(); }
 
-async function loadTickets() { 
-    document.getElementById('tickets-tbody').innerHTML='<tr><td colspan="8" class="text-center py-20"><span class="loader"></span> جاري التحميل...</td></tr>'; 
+// 🚀 تحديث لدعم الكاش
+async function loadTickets(force = false) { 
+    const tb = document.getElementById('tickets-tbody');
+    if (!force && isTicketsLoaded && allTicketsData.length > 0) {
+        renderTickets();
+        return;
+    }
+    tb.innerHTML='<tr><td colspan="8" class="text-center py-20"><span class="loader"></span> جاري التحميل...</td></tr>'; 
     try{ 
         const res=await fetch(`${API_URL}?type=tickets`); 
         allTicketsData=await res.json(); 
+        isTicketsLoaded = true;
         renderTickets(); 
     } catch(e){ 
-        document.getElementById('tickets-tbody').innerHTML='<tr><td colspan="8" class="text-center py-20 text-red-500">خطأ في الاتصال</td></tr>'; 
+        tb.innerHTML='<tr><td colspan="8" class="text-center py-20 text-red-500">حدث خطأ أثناء الجلب</td></tr>'; 
     } 
 }
 
@@ -338,7 +392,7 @@ async function saveTicket() {
 
     const p={action:"save_ticket",is_new:document.getElementById('t-id').value==='',admin:document.getElementById('display-user-name').innerText,ticket_data:{id:document.getElementById('t-id').value,user:document.getElementById('t-user').value,problem:document.getElementById('t-problem').value,branch:fullBranch,status:document.getElementById('t-status').value,report_date:document.getElementById('t-report').value,solve_date:document.getElementById('t-solve').value,reason:document.getElementById('t-reason').value,notes:''}}; 
     
-    try{ const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(p),headers:{'Content-Type':'text/plain;charset=utf-8'}}); const j=await res.json(); if(j.success){showToast(j.message);closeModal('ticket-form-modal');loadTickets();}else showToast(j.message,true); }catch(e){showToast('خطأ بالاتصال',true);}finally{btn.innerHTML='حفظ التذكرة';btn.disabled=false;} 
+    try{ const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(p),headers:{'Content-Type':'text/plain;charset=utf-8'}}); const j=await res.json(); if(j.success){showToast(j.message);closeModal('ticket-form-modal');loadTickets(true);}else showToast(j.message,true); }catch(e){showToast('خطأ بالاتصال',true);}finally{btn.innerHTML='حفظ التذكرة';btn.disabled=false;} 
 }
 
 // ==========================================
@@ -355,23 +409,46 @@ function openAssetsModal() {
     document.getElementById('location-filter').value = 'all';
 }
 
-async function loadBranchData() {
+function forceRefreshAssets() {
+    loadBranchData(true);
+}
+
+// 🚀 تحديث لدعم الكاش
+async function loadBranchData(force = false) {
     const tbody = document.getElementById('assets-tbody');
-    tbody.innerHTML = '<tr><td colspan="17" class="text-center py-20"><span class="loader"></span> جاري سحب البيانات...</td></tr>';
+    const branch = document.getElementById('branch-select').value;
     
-    // تصفير المربع المجمع
     document.getElementById('selectAllCheckbox').checked = false;
 
-    const branch = document.getElementById('branch-select').value;
-    try {
-        const res = await fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(branch)}`);
-        currentAssetsData = await res.json();
+    // استخدام الكاش لو الداتا موجودة ومفيش طلب تحديث اجباري
+    if (!force && isAssetsLoaded && currentAssetsBranch === branch && currentAssetsData.length > 0) {
         updateDeptDropdown(currentAssetsData);
         updateLocationDropdown(currentAssetsData);
         renderAssetsTable();
         makeTableResizable(); 
         searchAssets(); 
-    } catch(e) { tbody.innerHTML = '<tr><td colspan="17" class="text-center py-20 text-red-500">حدث خطأ أثناء الجلب</td></tr>'; }
+        return;
+    }
+
+    tbody.innerHTML = '<tr><td colspan="17" class="text-center py-20"><span class="loader"></span> جاري سحب البيانات...</td></tr>';
+    
+    try {
+        const res = await fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(branch)}`);
+        currentAssetsData = await res.json();
+        
+        if (currentAssetsData.error) throw new Error(currentAssetsData.error);
+        
+        isAssetsLoaded = true;
+        currentAssetsBranch = branch;
+        
+        updateDeptDropdown(currentAssetsData);
+        updateLocationDropdown(currentAssetsData);
+        renderAssetsTable();
+        makeTableResizable(); 
+        searchAssets(); 
+    } catch(e) { 
+        tbody.innerHTML = `<tr><td colspan="17" class="text-center py-20 text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i> حدث خطأ أثناء الجلب<br><span class="text-sm font-normal text-slate-400">تأكد أن اسم الشركة (${branch}) مطابق تماماً لاسم الشيت في الإكسيل.</span></td></tr>`; 
+    }
 }
 
 function updateDeptDropdown(data) {
@@ -429,7 +506,6 @@ function renderAssetsTable() {
         const coloredHardware = colorizeText(hwRaw);
 
         const isChecked = selectedEmployeesForPrint.some(e => e.name === empName && e.company === currentCompany);
-        // 🚀 تم إضافة كلاس print-checkbox للتعرف عليه
         const checkboxHtml = empName ? `<input type="checkbox" class="print-checkbox w-4 h-4 cursor-pointer accent-blue-500 rounded border-slate-600" data-emp="${empName}" data-title="${r['O.S'] || ''}" data-company="${currentCompany}" onchange="togglePrintSelection(this)" ${isChecked ? 'checked' : ''}>` : '-';
 
         html += `
@@ -480,15 +556,13 @@ function togglePrintSelection(checkbox) {
     document.getElementById('print-count').innerText = selectedEmployeesForPrint.length;
 }
 
-// 🚀 دالة تحديد الكل (التي تظهر في الجدول بناءً على الفلتر)
 function toggleAllPrintSelection(masterCheckbox) {
     const checkboxes = document.querySelectorAll('.print-checkbox');
     checkboxes.forEach(cb => {
-        // التأكد إن الصف معروض ومش مخفي بالفلتر
         if (cb.closest('tr').style.display !== 'none') {
             if (cb.checked !== masterCheckbox.checked) {
                 cb.checked = masterCheckbox.checked;
-                togglePrintSelection(cb); // استدعاء الدالة عشان العداد والذاكرة يتحدثوا
+                togglePrintSelection(cb); 
             }
         }
     });
@@ -661,7 +735,7 @@ async function confirmTransfer() {
     try { 
         const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); 
         const json = await res.json(); 
-        if(json.success) { showToast(json.message); closeModal('transfer-modal'); loadBranchData(); } 
+        if(json.success) { showToast(json.message); closeModal('transfer-modal'); loadBranchData(true); } 
         else { showToast(json.message, true); } 
     } catch(e) { showToast('خطأ بالاتصال بالخادم', true); } 
     finally { btn.innerHTML = 'تأكيد النقل'; btn.disabled = false; }
@@ -675,7 +749,6 @@ function searchAssets() {
     const locFilter = document.getElementById('location-filter').value;
     const rows = document.querySelectorAll('.asset-row');
     
-    // إزالة علامة الصح من "تحديد الكل" لو المستخدم بدأ يبحث عشان متلخبطش التحديد
     document.getElementById('selectAllCheckbox').checked = false;
     
     rows.forEach(row => {
@@ -730,7 +803,7 @@ async function saveAssetChanges() {
     const btn = document.getElementById('save-asset-btn'); btn.innerHTML = '<span class="loader !w-5 !h-5"></span>'; btn.disabled = true;
     const actionType = currentSerial === '' ? "add_asset" : "update_asset";
     const payload = { action: actionType, branch: document.getElementById('branch-select').value, old_serial: currentSerial, admin: document.getElementById('display-user-name').innerText, updates: { "Board Serial Number": document.getElementById('a-serial').value, "اسم الموظف": newEmpName, "Computer Name": document.getElementById('a-comp').value, "User Name": document.getElementById('a-user').value, "O.S": document.getElementById('a-os').value, "Model": document.getElementById('a-model').value, "Hardware": document.getElementById('a-hard').value, "Printer": document.getElementById('a-print').value, "O.S. & Programes": document.getElementById('a-prog').value, "Branche \\ Location": document.getElementById('a-loc').value, "pass usb": document.getElementById('a-usb').value, "pass win": document.getElementById('a-win').value, "Phone and serial number": document.getElementById('a-phone').value } };
-    try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); const json = await res.json(); if(json.success) { showToast('تم الحفظ بنجاح!'); closeModal('asset-edit-modal'); loadBranchData(); } else showToast(json.message, true); } catch(e) { showToast('خطأ بالاتصال', true); } finally { btn.innerHTML = 'حفظ البيانات'; btn.disabled = false; }
+    try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); const json = await res.json(); if(json.success) { showToast('تم الحفظ بنجاح!'); closeModal('asset-edit-modal'); loadBranchData(true); } else showToast(json.message, true); } catch(e) { showToast('خطأ بالاتصال', true); } finally { btn.innerHTML = 'حفظ البيانات'; btn.disabled = false; }
 }
 
 function revokeAsset(index) {
@@ -780,18 +853,24 @@ function openNetworksModal() {
     document.getElementById('network-search').value = '';
 }
 
-async function loadNetworks() { 
-    document.getElementById('networks-tbody').innerHTML='<tr><td colspan="12" class="text-center py-20"><span class="loader"></span> جاري سحب بيانات الشبكات...</td></tr>'; 
+// 🚀 تحديث لدعم الكاش
+async function loadNetworks(force = false) { 
+    const tb = document.getElementById('networks-tbody');
+    if (!force && isNetworksLoaded && allNetworksData.length > 0) {
+        renderNetworksTable();
+        return;
+    }
+    tb.innerHTML='<tr><td colspan="12" class="text-center py-20"><span class="loader"></span> جاري سحب بيانات الشبكات...</td></tr>'; 
     try { 
         const res = await fetch(`${API_URL}?type=networks`); 
-        allNetworksData = await res.json(); 
+        let data = await res.json(); 
 
-        const keys = Object.keys(allNetworksData[0] || {});
+        const keys = Object.keys(data[0] || {});
         const deviceKeyIndex = keys.indexOf("اسم الاجهزه");
         const branchKey = deviceKeyIndex > 1 ? keys[deviceKeyIndex - 1] : (keys.find(k => k === "" || k === "الفرع") || keys[1]);
         
         let lastBranch = '';
-        allNetworksData = allNetworksData.map(r => {
+        allNetworksData = data.map(r => {
             let currentVal = r[branchKey] !== undefined ? String(r[branchKey]).trim() : '';
             if (currentVal !== '') {
                 lastBranch = currentVal;
@@ -802,10 +881,10 @@ async function loadNetworks() {
             r.displayBranch = lastBranch;
             return r;
         });
-        
+        isNetworksLoaded = true;
         renderNetworksTable(); 
     } catch(e) { 
-        document.getElementById('networks-tbody').innerHTML='<tr><td colspan="12" class="text-center py-20 text-red-500">خطأ في الاتصال بقاعدة بيانات الشبكات</td></tr>'; 
+        tb.innerHTML='<tr><td colspan="12" class="text-center py-20 text-red-500">خطأ في الاتصال بقاعدة بيانات الشبكات</td></tr>'; 
     } 
 }
 
@@ -942,7 +1021,7 @@ async function saveNetwork() {
         if(json.success) { 
             showToast(json.message); 
             closeModal('network-form-modal'); 
-            loadNetworks(); 
+            loadNetworks(true); 
         } else { 
             showToast(json.message, true); 
         } 
