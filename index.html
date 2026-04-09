@@ -190,7 +190,9 @@
                     <thead class="sticky top-0 bg-slate-900 z-10">
                         <tr>
                             <th class="text-center">م</th>
-                            <th class="text-center w-10 text-blue-400" title="تحديد لطباعة كشف الموظفين"><i class="fa-solid fa-check-double"></i></th>
+                            <th class="text-center w-10 text-blue-400" title="تحديد كل الموظفين في الجدول الحالي">
+                                <input type="checkbox" id="selectAllCheckbox" onchange="toggleAllPrintSelection(this)" class="w-4 h-4 cursor-pointer accent-blue-500 rounded border-slate-600">
+                            </th>
                             <th class="text-center text-purple-400"><i class="fa-solid fa-barcode"></i> باركود</th>
                             <th class="text-right">الموظف/الحالة</th>
                             <th class="text-center">Computer Name</th>
