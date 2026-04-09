@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbxo63H8UcG15jIOKdT5nRJbzcZZ-juJw3P2v7N-my7kKwDnhVYeroVkkV76zux_KboxUA/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzix4wbgRr7phVjFdwZ1H9ml35tidBIH1HNe-srpCMoF7t8vHU9NgU0w2bqCGW_Fyegxg/exec';
 
 function normalizeArabic(text) {
     if (!text) return '';
@@ -312,14 +312,13 @@ async function saveTicket() {
 }
 
 // ==========================================
-// --- الأصول ---
+// 🚀 قسم الأصول (الباركود + النقل)
 // ==========================================
 let currentAssetsData = [];
 
 function openAssetsModal() { 
     openModal('assets-modal'); 
     loadBranchData(); 
-    // تفريغ الفلاتر فقط عند فتح النافذة لأول مرة
     document.getElementById('asset-search').value = ''; 
     document.getElementById('status-filter').value = 'all'; 
     document.getElementById('location-filter').value = 'all';
@@ -327,7 +326,7 @@ function openAssetsModal() {
 
 async function loadBranchData() {
     const tbody = document.getElementById('assets-tbody');
-    tbody.innerHTML = '<tr><td colspan="15" class="text-center py-20"><span class="loader"></span> جاري سحب البيانات...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="16" class="text-center py-20"><span class="loader"></span> جاري سحب البيانات...</td></tr>';
     const branch = document.getElementById('branch-select').value;
     try {
         const res = await fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(branch)}`);
@@ -336,11 +335,8 @@ async function loadBranchData() {
         updateLocationDropdown(currentAssetsData);
         renderAssetsTable();
         makeTableResizable(); 
-        
-        // 🚀 السر كله هنا: تطبيق الفلاتر الحالية (لو موجودة) على الداتا الجديدة
         searchAssets(); 
-        
-    } catch(e) { tbody.innerHTML = '<tr><td colspan="15" class="text-center py-20 text-red-500">حدث خطأ أثناء الجلب</td></tr>'; }
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="16" class="text-center py-20 text-red-500">حدث خطأ أثناء الجلب</td></tr>'; }
 }
 
 function updateDeptDropdown(data) {
@@ -366,6 +362,9 @@ function updateLocationDropdown(data) {
 
 function renderAssetsTable() {
     const tbody = document.getElementById('assets-tbody');
+    const currentCompany = document.getElementById('branch-select').value;
+    const prefix = currentCompany.substring(0,3).toUpperCase(); // حرف الـ Prefix للباركود (مثال: KIT)
+
     let html = ''; let count = 0;
     currentAssetsData.forEach((r, index) => {
         const serialRaw = r['Board Serial Number'] || r['سيريال لاب توب'] || '';
@@ -375,10 +374,16 @@ function renderAssetsTable() {
         if(!serialRaw && !empName) return;
         count++;
         
+        // 🚀 توليد رقم الباركود الداخلي (مثال: KIT-001)
+        const barcodeID = `${prefix}-${String(count).padStart(3, '0')}`;
+
         let empDisplay = '';
         let statusVal = 'inuse';
+        let printTitle = empName;
+
         if (empName === '') {
             statusVal = 'available';
+            printTitle = 'جهاز متوفر';
             empDisplay = `<span class="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs font-bold border border-green-500/30">جهاز متوفر</span>`;
             if(prevEmp) empDisplay += `<br><span class="text-[10px] text-slate-400 mt-1 block font-mono">سابقاً: ${prevEmp}</span>`;
         } else {
@@ -392,9 +397,10 @@ function renderAssetsTable() {
         html += `
             <tr class="data-row asset-row" data-status="${statusVal}">
                 <td class="p-4 font-bold text-slate-400 text-center">${count}</td>
-                <td class="p-4 font-bold text-white emp-search-val text-right whitespace-nowrap">${empDisplay}</td>
+                <td class="p-4 font-mono text-purple-400 text-center font-bold asset-search-val tracking-widest">${barcodeID}</td>
+                <td class="p-4 font-bold text-white asset-search-val text-right whitespace-nowrap">${empDisplay}</td>
                 <td class="p-4 text-xs text-slate-300 text-center">${r['Computer Name'] || '-'}</td>
-                <td class="p-4 font-mono text-sm serial-search-val text-center" dir="ltr">${coloredSerial}</td>
+                <td class="p-4 font-mono text-sm asset-search-val text-center" dir="ltr">${coloredSerial}</td>
                 <td class="p-4 text-xs text-slate-300 text-center">${r['User Name'] || '-'}</td>
                 <td class="p-4 text-xs text-slate-300 os-search-val text-center"><span class="bg-slate-800 px-2 py-1 rounded border border-slate-700">${r['O.S'] || '-'}</span></td>
                 <td class="p-4 text-xs text-slate-300 max-w-[150px] truncate text-center" title="${r['Model'] || ''}">${r['Model'] || '-'}</td>
@@ -407,23 +413,16 @@ function renderAssetsTable() {
                 <td class="p-4 text-xs text-slate-300 text-center">${r['Phone and serial number'] || '-'}</td>
                 <td class="p-4 text-center bg-slate-900 sticky left-0 shadow-[-5px_0_10px_rgba(0,0,0,0.3)] border-r border-slate-700/50 z-10">
                     <div class="flex justify-center gap-1">
+                        <button onclick="openTransferModal(${index})" title="نقل إلى شركة أخرى" class="bg-yellow-600/20 hover:bg-yellow-600 text-yellow-500 hover:text-white px-2 py-1.5 rounded shadow transition text-xs"><i class="fa-solid fa-truck-fast"></i></button>
+                        <button onclick="printSingleBarcode('${barcodeID}', '${printTitle}')" title="طباعة الباركود" class="bg-purple-600/20 hover:bg-purple-600 text-purple-400 hover:text-white px-2 py-1.5 rounded shadow transition text-xs"><i class="fa-solid fa-print"></i></button>
+                        
                         ${empName !== '' ? `<button onclick="revokeAsset(${index})" title="سحب العهدة" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-2 py-1.5 rounded shadow transition text-xs"><i class="fa-solid fa-arrow-rotate-left"></i></button>` : ''}
                         <button onclick="openAssetEdit(${index})" class="bg-slate-700 hover:bg-cyan-600 text-white px-3 py-1.5 rounded shadow transition text-xs font-bold"><i class="fa-solid fa-pen"></i></button>
                     </div>
                 </td>
             </tr>`;
     });
-    tbody.innerHTML = html || '<tr><td colspan="15" class="text-center py-20 text-slate-500">لا توجد بيانات مسجلة في هذا الفرع</td></tr>';
-}
-
-function revokeAsset(index) {
-    if(!checkPermission()) return;
-    if(!confirm("هل أنت متأكد أنك تريد سحب هذا الجهاز وجعله متوفر؟")) return;
-    document.getElementById('a-old-serial').value = currentAssetsData[index]['Board Serial Number'] || currentAssetsData[index]['سيريال لاب توب'] || '';
-    document.getElementById('a-serial').value = document.getElementById('a-old-serial').value;
-    document.getElementById('a-emp').value = ""; 
-    document.getElementById('a-comp').value = currentAssetsData[index]['Computer Name'] || ''; document.getElementById('a-user').value = currentAssetsData[index]['User Name'] || ''; document.getElementById('a-os').value = currentAssetsData[index]['O.S'] || ''; document.getElementById('a-model').value = currentAssetsData[index]['Model'] || ''; document.getElementById('a-hard').value = currentAssetsData[index]['Hardware'] || currentAssetsData[index]['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = currentAssetsData[index]['Printer '] || currentAssetsData[index]['Printer'] || ''; document.getElementById('a-prog').value = currentAssetsData[index]['O.S. & Programes'] || ''; document.getElementById('a-loc').value = currentAssetsData[index]['Branche \\ Location '] || currentAssetsData[index]['Branche \\ Location'] || ''; document.getElementById('a-usb').value = currentAssetsData[index]['pass usb'] || ''; document.getElementById('a-win').value = currentAssetsData[index]['pass win'] || ''; document.getElementById('a-phone').value = currentAssetsData[index]['Phone and serial number'] || '';
-    saveAssetChanges();
+    tbody.innerHTML = html || '<tr><td colspan="16" class="text-center py-20 text-slate-500">لا توجد بيانات مسجلة في هذا الفرع</td></tr>';
 }
 
 function searchAssets() {
@@ -435,16 +434,13 @@ function searchAssets() {
     const rows = document.querySelectorAll('.asset-row');
     
     rows.forEach(row => {
-        const empNameRaw = row.querySelector('.emp-search-val').textContent.toLowerCase();
-        const serialRaw = row.querySelector('.serial-search-val').textContent.toLowerCase();
+        let textToSearch = '';
+        row.querySelectorAll('.asset-search-val').forEach(c => textToSearch += c.textContent.toLowerCase() + ' ');
         const osVal = row.querySelector('.os-search-val').textContent.trim();
         const locVal = row.querySelector('.loc-search-val').textContent.trim();
         const statusVal = row.getAttribute('data-status');
         
-        const empName = normalizeArabic(empNameRaw);
-        const serial = normalizeArabic(serialRaw);
-        
-        const matchesText = empName.includes(input) || serial.includes(input);
+        const matchesText = normalizeArabic(textToSearch).includes(input);
         const matchesDept = (deptFilter === 'all' || osVal === deptFilter);
         const matchesStatus = (statusFilter === 'all' || statusVal === statusFilter);
         const matchesLoc = (locFilter === 'all' || locVal === locFilter);
@@ -453,6 +449,114 @@ function searchAssets() {
     });
 }
 
+// 🚀 دوال الباركود والطباعة 
+function printSingleBarcode(code, textLine) {
+    let win = window.open('', '', 'width=600,height=400');
+    win.document.write(`
+        <html><head><title>Print Barcode</title>
+        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>
+        </head><body onload="JsBarcode('#bc', '${code}', {displayValue:true, height: 80, fontSize: 18}); setTimeout(()=>window.print(), 500);">
+        <div style="text-align:center; margin-top:50px; border:2px dashed #000; padding:20px; display:inline-block; border-radius:10px;">
+        <h3 style="font-family:sans-serif;">${textLine}</h3><svg id="bc"></svg></div>
+        </body></html>
+    `);
+    win.document.close();
+}
+
+function printAllBarcodes() {
+    let win = window.open('', '', 'width=800,height=600');
+    const currentCompany = document.getElementById('branch-select').value;
+    const prefix = currentCompany.substring(0,3).toUpperCase();
+    
+    let html = `<html><head><title>Print All Barcodes</title><script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script><style>.grid{display:grid; grid-template-columns: repeat(2, 1fr); gap: 20px; font-family:sans-serif;} .card{text-align:center; border:2px dashed #000; padding:15px; border-radius:10px; break-inside: avoid;}</style></head><body><div class="grid">`;
+
+    let count = 0;
+    currentAssetsData.forEach(r => {
+         const empName = r['اسم الموظف'] || '';
+         const serialRaw = r['Board Serial Number'] || r['سيريال لاب توب'] || '';
+         if(!serialRaw && !empName) return;
+         count++;
+         let title = empName || 'جهاز متوفر';
+         html += `<div class="card"><h4>${title}</h4><svg id="bc-${count}"></svg></div>`;
+    });
+
+    html += `</div><script>`;
+    count = 0;
+    currentAssetsData.forEach(r => {
+         const empName = r['اسم الموظف'] || '';
+         const serialRaw = r['Board Serial Number'] || r['سيريال لاب توب'] || '';
+         if(!serialRaw && !empName) return;
+         count++;
+         let code = `${prefix}-${String(count).padStart(3, '0')}`;
+         html += `JsBarcode("#bc-${count}", "${code}", {displayValue:true, height: 60, fontSize: 16});\n`;
+    });
+    html += `setTimeout(()=>window.print(), 1000);<\/script></body></html>`;
+    
+    win.document.write(html);
+    win.document.close();
+}
+
+// 🚀 دوال النقل بين الشركات
+function openTransferModal(index) {
+    if(!checkPermission()) return;
+    const r = currentAssetsData[index];
+    const serial = r['Board Serial Number'] || r['سيريال لاب توب'] || '';
+    const empName = r['اسم الموظف'] || '';
+    const currentCompany = document.getElementById('branch-select').value;
+
+    document.getElementById('tr-display-name').innerText = empName ? `الموظف: ${empName}` : `سيريال: ${serial}`;
+    document.getElementById('tr-serial').value = serial;
+    document.getElementById('tr-emp').value = empName;
+    document.getElementById('tr-old-branch').value = currentCompany;
+    
+    document.getElementById('tr-new-branch').value = currentCompany; // الديفولت
+    
+    openModal('transfer-modal');
+}
+
+async function confirmTransfer() {
+    if(!checkPermission()) return;
+    const btn = document.getElementById('save-transfer-btn'); 
+    
+    const oldBranch = document.getElementById('tr-old-branch').value;
+    const newBranch = document.getElementById('tr-new-branch').value;
+    const serial = document.getElementById('tr-serial').value;
+    const empName = document.getElementById('tr-emp').value;
+
+    if(oldBranch === newBranch) {
+        showToast('يرجى اختيار شركة مختلفة للنقل!', true);
+        return;
+    }
+
+    btn.innerHTML = '<span class="loader !w-5 !h-5"></span>'; btn.disabled = true;
+
+    const payload = {
+        action: "transfer_asset",
+        old_branch: oldBranch,
+        new_branch: newBranch,
+        serial: serial,
+        emp_name: empName,
+        admin: document.getElementById('display-user-name').innerText
+    };
+
+    try { 
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); 
+        const json = await res.json(); 
+        if(json.success) { 
+            showToast(json.message); 
+            closeModal('transfer-modal'); 
+            loadBranchData(); // تحديث الجدول فوراً
+        } else { 
+            showToast(json.message, true); 
+        } 
+    } catch(e) { 
+        showToast('خطأ بالاتصال بالخادم', true); 
+    } finally { 
+        btn.innerHTML = 'تأكيد النقل'; btn.disabled = false; 
+    }
+}
+
+// الدوال الباقية زي ما هي
 function makeTableResizable() {
     const table = document.getElementById("assets-table");
     const cols = table.querySelectorAll("th");
@@ -492,6 +596,16 @@ async function saveAssetChanges() {
     try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); const json = await res.json(); if(json.success) { showToast('تم الحفظ بنجاح!'); closeModal('asset-edit-modal'); loadBranchData(); } else showToast(json.message, true); } catch(e) { showToast('خطأ بالاتصال', true); } finally { btn.innerHTML = 'حفظ البيانات'; btn.disabled = false; }
 }
 
+function revokeAsset(index) {
+    if(!checkPermission()) return;
+    if(!confirm("هل أنت متأكد أنك تريد سحب هذا الجهاز وجعله متوفر؟")) return;
+    document.getElementById('a-old-serial').value = currentAssetsData[index]['Board Serial Number'] || currentAssetsData[index]['سيريال لاب توب'] || '';
+    document.getElementById('a-serial').value = document.getElementById('a-old-serial').value;
+    document.getElementById('a-emp').value = ""; 
+    document.getElementById('a-comp').value = currentAssetsData[index]['Computer Name'] || ''; document.getElementById('a-user').value = currentAssetsData[index]['User Name'] || ''; document.getElementById('a-os').value = currentAssetsData[index]['O.S'] || ''; document.getElementById('a-model').value = currentAssetsData[index]['Model'] || ''; document.getElementById('a-hard').value = currentAssetsData[index]['Hardware'] || currentAssetsData[index]['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = currentAssetsData[index]['Printer '] || currentAssetsData[index]['Printer'] || ''; document.getElementById('a-prog').value = currentAssetsData[index]['O.S. & Programes'] || ''; document.getElementById('a-loc').value = currentAssetsData[index]['Branche \\ Location '] || currentAssetsData[index]['Branche \\ Location'] || ''; document.getElementById('a-usb').value = currentAssetsData[index]['pass usb'] || ''; document.getElementById('a-win').value = currentAssetsData[index]['pass win'] || ''; document.getElementById('a-phone').value = currentAssetsData[index]['Phone and serial number'] || '';
+    saveAssetChanges();
+}
+
 // --- سجل الحركات (Logs) ---
 function openLogsModal() { openModal('logs-modal'); loadLogs(); }
 
@@ -519,7 +633,7 @@ async function loadLogs() {
 }
 
 // ==========================================
-// 🚀 نظام إدارة الشبكات والروترات (NOC) المطوّر 
+// 🚀 نظام إدارة الشبكات والروترات
 // ==========================================
 let allNetworksData = [];
 
