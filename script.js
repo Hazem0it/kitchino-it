@@ -15,7 +15,7 @@ function colorizeText(text) {
     }).join('<span class="text-slate-600 font-black mx-2">/</span>');
 }
 
-// 🚀 نظام الحسابات الدائم
+// 🚀 نظام الحسابات الدائم (مستقل عن تحديثات الكود)
 let defaultUsers = [
     { username: 'hazem', pass: '12345', role: 'Admin' },
     { username: 'admin', pass: '12345', role: 'Admin' },
@@ -568,6 +568,7 @@ function toggleAllPrintSelection(masterCheckbox) {
     });
 }
 
+// 🚀 دالة طباعة كشف A4 مجمع باحترافية كاملة (Letterhead Style)
 function printSelectedEmployees() {
     if (selectedEmployeesForPrint.length === 0) {
         showToast('برجاء تحديد موظف واحد على الأقل من الجدول أولاً', true);
@@ -584,32 +585,62 @@ function printSelectedEmployees() {
     let html = `
         <html dir="rtl" lang="ar">
         <head>
-            <title>كشف تسليم/تسكين عُهد الموظفين</title>
+            <title>كشف تسليم عُهد الموظفين - KITCHINO IT</title>
             <style>
-                @page { size: A4; margin: 20mm; }
-                body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; color: #333; background: #fff; margin: 0; padding: 20px; }
-                h1 { text-align: center; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 30px; font-size: 26px;}
-                .company-box { margin-bottom: 40px; page-break-inside: avoid; }
-                .company-header { background-color: #1e293b; color: #fff; padding: 12px 20px; border-radius: 8px 8px 0 0; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;}
-                .emp-count { background: #38bdf8; color: #0f172a; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; }
-                table { width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; border-top: none; }
-                th, td { border: 1px solid #e2e8f0; padding: 12px 15px; text-align: right; }
-                th { background-color: #f8fafc; font-weight: bold; color: #475569; width: 50%; font-size: 16px;}
-                td { font-size: 15px; }
-                tr:nth-child(even) { background-color: #f8fafc; }
-                .footer { text-align: center; margin-top: 50px; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+                @page { size: A4; margin: 0; }
+                body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; color: #333; background: #fff; margin: 0; padding: 0; position: relative; }
+                
+                .header-strip { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); height: 35mm; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 25mm; box-sizing: border-box; color: #fff; border-bottom: 5px solid #ca8a04; }
+                .header-title { text-align: right; }
+                .header-title h1 { margin: 0; font-size: 24pt; font-weight: 900; letter-spacing: -1px; }
+                .header-title p { margin: 5pt 0 0; font-size: 11pt; opacity: 0.8; font-weight: bold;}
+
+                .footer-strip { position: fixed; bottom: 0; left: 0; width: 100%; background: linear-gradient(135deg, #1e3a8a 0%, #1e293b 100%); height: 15mm; border-top: 3px solid #ca8a04; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.6); font-size: 9pt; }
+
+                .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 180pt; font-weight: 900; color: rgba(0, 0, 0, 0.03); font-family: Arial, sans-serif; pointer-events: none; z-index: -1; }
+
+                .main-content { padding: 15mm 25mm 25mm 25mm; box-sizing: border-box; }
+                
+                .report-header { text-align: center; margin-bottom: 30px; }
+                .report-header h2 { font-size: 18pt; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; display: inline-block; }
+                
+                .company-box { margin-bottom: 35px; page-break-inside: avoid; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;}
+                .company-header { background-color: #f1f5f9; padding: 10px 20px; border-bottom: 1px solid #e2e8f0; font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;}
+                .company-name { color: #1e3a8a; font-weight: 900;}
+                .emp-count { background: #ca8a04; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; }
+                
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border-bottom: 1px solid #e2e8f0; padding: 12px 20px; text-align: right; }
+                th { background-color: #fff; font-weight: 900; color: #1e3a8a; width: 50%; font-size: 14px;}
+                td { font-size: 13px; color: #475569; }
+                tr:last-child td { border-bottom: none; }
+                tr:hover td { background-color: #f8fafc; }
             </style>
         </head>
         <body>
-            <h1>تقرير العُهد المُجمّع للموظفين</h1>
+            <div class="watermark">IT</div>
+            <div class="header-strip">
+                <div class="header-title">
+                    <h1>KITCHINO GROUP</h1>
+                    <p>إدارة تكنولوجيا المعلومات | قطاع الدعم الفني والأصول</p>
+                </div>
+            </div>
+            <div class="main-content">
+                <div class="report-header">
+                    <h2>كشف استلام وتسكين عُهد الموظفين</h2>
+                </div>
     `;
 
     for (const [company, emps] of Object.entries(grouped)) {
+        const validEmps = emps.filter(emp => emp.name.trim() !== '' && emp.name.trim() !== '-');
+
+        if (validEmps.length === 0) continue; 
+
         html += `
             <div class="company-box">
                 <div class="company-header">
-                    <span>شركة / فرع: <span style="color:#38bdf8">${company.toUpperCase()}</span></span>
-                    <span class="emp-count">العدد المرفق: ${emps.length}</span>
+                    <span>شركة / فرع: <span class="company-name">${company.toUpperCase()}</span></span>
+                    <span class="emp-count">العدد المرفق: ${validEmps.length}</span>
                 </div>
                 <table>
                     <thead>
@@ -620,7 +651,7 @@ function printSelectedEmployees() {
                     </thead>
                     <tbody>
         `;
-        emps.forEach(emp => {
+        validEmps.forEach(emp => {
             html += `
                 <tr>
                     <td><strong>${emp.name}</strong></td>
@@ -636,9 +667,14 @@ function printSelectedEmployees() {
     }
 
     html += `
-            <div class="footer">تم إنشاء هذا التقرير تلقائياً من نظام Kitchino IT Operations Center &copy; ${new Date().getFullYear()}</div>
+            </div> 
+            <div class="footer-strip">
+                هذا التقرير تم إنشاؤه عبر نظام إدارة الأصول المركزي - Kitchino Group IT &copy; ${new Date().getFullYear()}
+            </div>
             <script>
-                setTimeout(() => { window.print(); }, 800);
+                setTimeout(() => { 
+                    window.print(); 
+                }, 1000);
             <\/script>
         </body>
         </html>
@@ -853,7 +889,6 @@ function openNetworksModal() {
     document.getElementById('network-search').value = '';
 }
 
-// 🚀 تحديث لدعم الكاش
 async function loadNetworks(force = false) { 
     const tb = document.getElementById('networks-tbody');
     if (!force && isNetworksLoaded && allNetworksData.length > 0) {
