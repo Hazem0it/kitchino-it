@@ -312,9 +312,11 @@ async function saveTicket() {
 }
 
 // ==========================================
-// 🚀 قسم الأصول (الباركود + النقل)
+// 🚀 قسم الأصول (مضاف له التحديد والطباعة المجمعة)
 // ==========================================
 let currentAssetsData = [];
+// الذاكرة المؤقتة لحفظ الموظفين اللي بتعلم عليهم للطباعة
+let selectedEmployeesForPrint = [];
 
 function openAssetsModal() { 
     openModal('assets-modal'); 
@@ -326,7 +328,7 @@ function openAssetsModal() {
 
 async function loadBranchData() {
     const tbody = document.getElementById('assets-tbody');
-    tbody.innerHTML = '<tr><td colspan="16" class="text-center py-20"><span class="loader"></span> جاري سحب البيانات...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="17" class="text-center py-20"><span class="loader"></span> جاري سحب البيانات...</td></tr>';
     const branch = document.getElementById('branch-select').value;
     try {
         const res = await fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(branch)}`);
@@ -336,7 +338,7 @@ async function loadBranchData() {
         renderAssetsTable();
         makeTableResizable(); 
         searchAssets(); 
-    } catch(e) { tbody.innerHTML = '<tr><td colspan="16" class="text-center py-20 text-red-500">حدث خطأ أثناء الجلب</td></tr>'; }
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="17" class="text-center py-20 text-red-500">حدث خطأ أثناء الجلب</td></tr>'; }
 }
 
 function updateDeptDropdown(data) {
@@ -363,7 +365,7 @@ function updateLocationDropdown(data) {
 function renderAssetsTable() {
     const tbody = document.getElementById('assets-tbody');
     const currentCompany = document.getElementById('branch-select').value;
-    const prefix = currentCompany.substring(0,3).toUpperCase(); // حرف الـ Prefix للباركود (مثال: KIT)
+    const prefix = currentCompany.substring(0,3).toUpperCase(); 
 
     let html = ''; let count = 0;
     currentAssetsData.forEach((r, index) => {
@@ -374,7 +376,6 @@ function renderAssetsTable() {
         if(!serialRaw && !empName) return;
         count++;
         
-        // 🚀 توليد رقم الباركود الداخلي (مثال: KIT-001)
         const barcodeID = `${prefix}-${String(count).padStart(3, '0')}`;
 
         let empDisplay = '';
@@ -394,9 +395,15 @@ function renderAssetsTable() {
         const hwRaw = r['Hardware'] || r['مواصفات الجهاز'] || '';
         const coloredHardware = colorizeText(hwRaw);
 
+        // 🚀 تحديد إذا كان الموظف متعلم عليه من قبل ولا لأ
+        const isChecked = selectedEmployeesForPrint.some(e => e.name === empName && e.company === currentCompany);
+        // زرار التحديد يظهر فقط لو في موظف
+        const checkboxHtml = empName ? `<input type="checkbox" class="w-4 h-4 cursor-pointer accent-blue-500 rounded border-slate-600" data-emp="${empName}" data-title="${r['O.S'] || ''}" data-company="${currentCompany}" onchange="togglePrintSelection(this)" ${isChecked ? 'checked' : ''}>` : '-';
+
         html += `
             <tr class="data-row asset-row" data-status="${statusVal}">
                 <td class="p-4 font-bold text-slate-400 text-center">${count}</td>
+                <td class="p-4 text-center">${checkboxHtml}</td>
                 <td class="p-4 font-mono text-purple-400 text-center font-bold asset-search-val tracking-widest">${barcodeID}</td>
                 <td class="p-4 font-bold text-white asset-search-val text-right whitespace-nowrap">${empDisplay}</td>
                 <td class="p-4 text-xs text-slate-300 text-center">${r['Computer Name'] || '-'}</td>
@@ -415,41 +422,115 @@ function renderAssetsTable() {
                     <div class="flex justify-center gap-1">
                         <button onclick="openTransferModal(${index})" title="نقل إلى شركة أخرى" class="bg-yellow-600/20 hover:bg-yellow-600 text-yellow-500 hover:text-white px-2 py-1.5 rounded shadow transition text-xs"><i class="fa-solid fa-truck-fast"></i></button>
                         <button onclick="printSingleBarcode('${barcodeID}', '${printTitle}')" title="طباعة الباركود" class="bg-purple-600/20 hover:bg-purple-600 text-purple-400 hover:text-white px-2 py-1.5 rounded shadow transition text-xs"><i class="fa-solid fa-print"></i></button>
-                        
                         ${empName !== '' ? `<button onclick="revokeAsset(${index})" title="سحب العهدة" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-2 py-1.5 rounded shadow transition text-xs"><i class="fa-solid fa-arrow-rotate-left"></i></button>` : ''}
                         <button onclick="openAssetEdit(${index})" class="bg-slate-700 hover:bg-cyan-600 text-white px-3 py-1.5 rounded shadow transition text-xs font-bold"><i class="fa-solid fa-pen"></i></button>
                     </div>
                 </td>
             </tr>`;
     });
-    tbody.innerHTML = html || '<tr><td colspan="16" class="text-center py-20 text-slate-500">لا توجد بيانات مسجلة في هذا الفرع</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="17" class="text-center py-20 text-slate-500">لا توجد بيانات مسجلة في هذا الفرع</td></tr>';
 }
 
-function searchAssets() {
-    const inputRaw = document.getElementById('asset-search').value.toLowerCase();
-    const input = normalizeArabic(inputRaw);
-    const deptFilter = document.getElementById('dept-filter').value;
-    const statusFilter = document.getElementById('status-filter').value;
-    const locFilter = document.getElementById('location-filter').value;
-    const rows = document.querySelectorAll('.asset-row');
+// 🚀 دالة إضافة وإزالة الموظف من قائمة الطباعة
+function togglePrintSelection(checkbox) {
+    const empData = {
+        company: checkbox.dataset.company,
+        name: checkbox.dataset.emp,
+        title: checkbox.dataset.title
+    };
     
-    rows.forEach(row => {
-        let textToSearch = '';
-        row.querySelectorAll('.asset-search-val').forEach(c => textToSearch += c.textContent.toLowerCase() + ' ');
-        const osVal = row.querySelector('.os-search-val').textContent.trim();
-        const locVal = row.querySelector('.loc-search-val').textContent.trim();
-        const statusVal = row.getAttribute('data-status');
-        
-        const matchesText = normalizeArabic(textToSearch).includes(input);
-        const matchesDept = (deptFilter === 'all' || osVal === deptFilter);
-        const matchesStatus = (statusFilter === 'all' || statusVal === statusFilter);
-        const matchesLoc = (locFilter === 'all' || locVal === locFilter);
-        
-        row.style.display = (matchesText && matchesDept && matchesStatus && matchesLoc) ? "" : "none";
-    });
+    if (checkbox.checked) {
+        if (!selectedEmployeesForPrint.some(e => e.name === empData.name && e.company === empData.company)) {
+            selectedEmployeesForPrint.push(empData);
+        }
+    } else {
+        selectedEmployeesForPrint = selectedEmployeesForPrint.filter(e => !(e.name === empData.name && e.company === empData.company));
+    }
+    document.getElementById('print-count').innerText = selectedEmployeesForPrint.length;
 }
 
-// 🚀 دوال الباركود والطباعة 
+// 🚀 دالة طباعة كشف A4 مجمع وشيك
+function printSelectedEmployees() {
+    if (selectedEmployeesForPrint.length === 0) {
+        showToast('برجاء تحديد موظف واحد على الأقل من الجدول أولاً', true);
+        return;
+    }
+
+    // تجميع الموظفين حسب الشركة
+    const grouped = selectedEmployeesForPrint.reduce((acc, curr) => {
+        if (!acc[curr.company]) acc[curr.company] = [];
+        acc[curr.company].push(curr);
+        return acc;
+    }, {});
+
+    let win = window.open('', '', 'width=900,height=700');
+    let html = `
+        <html dir="rtl" lang="ar">
+        <head>
+            <title>كشف تسليم/تسكين عُهد الموظفين</title>
+            <style>
+                @page { size: A4; margin: 20mm; }
+                body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; color: #333; background: #fff; margin: 0; padding: 20px; }
+                h1 { text-align: center; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 30px; font-size: 26px;}
+                .company-box { margin-bottom: 40px; page-break-inside: avoid; }
+                .company-header { background-color: #1e293b; color: #fff; padding: 12px 20px; border-radius: 8px 8px 0 0; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;}
+                .emp-count { background: #38bdf8; color: #0f172a; padding: 4px 12px; border-radius: 20px; font-size: 14px; }
+                table { width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; border-top: none; }
+                th, td { border: 1px solid #e2e8f0; padding: 12px 15px; text-align: right; }
+                th { background-color: #f8fafc; font-weight: bold; color: #475569; width: 50%; font-size: 16px;}
+                td { font-size: 15px; }
+                tr:nth-child(even) { background-color: #f8fafc; }
+                .footer { text-align: center; margin-top: 50px; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+            </style>
+        </head>
+        <body>
+            <h1>تقرير العُهد المُجمّع للموظفين</h1>
+    `;
+
+    for (const [company, emps] of Object.entries(grouped)) {
+        html += `
+            <div class="company-box">
+                <div class="company-header">
+                    <span>شركة / فرع: <span style="color:#38bdf8">${company.toUpperCase()}</span></span>
+                    <span class="emp-count">العدد المرفق: ${emps.length}</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>اسم الموظف</th>
+                            <th>القسم / الوظيفة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        emps.forEach(emp => {
+            html += `
+                <tr>
+                    <td><strong>${emp.name}</strong></td>
+                    <td>${emp.title || 'غير محدد'}</td>
+                </tr>
+            `;
+        });
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    html += `
+            <div class="footer">تم إنشاء هذا التقرير تلقائياً من نظام Kitchino IT Operations Center &copy; ${new Date().getFullYear()}</div>
+            <script>
+                setTimeout(() => { window.print(); }, 800);
+            <\/script>
+        </body>
+        </html>
+    `;
+
+    win.document.write(html);
+    win.document.close();
+}
+
 function printSingleBarcode(code, textLine) {
     let win = window.open('', '', 'width=600,height=400');
     win.document.write(`
@@ -496,7 +577,6 @@ function printAllBarcodes() {
     win.document.close();
 }
 
-// 🚀 دوال النقل بين الشركات
 function openTransferModal(index) {
     if(!checkPermission()) return;
     const r = currentAssetsData[index];
@@ -508,8 +588,7 @@ function openTransferModal(index) {
     document.getElementById('tr-serial').value = serial;
     document.getElementById('tr-emp').value = empName;
     document.getElementById('tr-old-branch').value = currentCompany;
-    
-    document.getElementById('tr-new-branch').value = currentCompany; // الديفولت
+    document.getElementById('tr-new-branch').value = currentCompany; 
     
     openModal('transfer-modal');
 }
@@ -523,10 +602,7 @@ async function confirmTransfer() {
     const serial = document.getElementById('tr-serial').value;
     const empName = document.getElementById('tr-emp').value;
 
-    if(oldBranch === newBranch) {
-        showToast('يرجى اختيار شركة مختلفة للنقل!', true);
-        return;
-    }
+    if(oldBranch === newBranch) { showToast('يرجى اختيار شركة مختلفة للنقل!', true); return; }
 
     btn.innerHTML = '<span class="loader !w-5 !h-5"></span>'; btn.disabled = true;
 
@@ -542,21 +618,36 @@ async function confirmTransfer() {
     try { 
         const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); 
         const json = await res.json(); 
-        if(json.success) { 
-            showToast(json.message); 
-            closeModal('transfer-modal'); 
-            loadBranchData(); // تحديث الجدول فوراً
-        } else { 
-            showToast(json.message, true); 
-        } 
-    } catch(e) { 
-        showToast('خطأ بالاتصال بالخادم', true); 
-    } finally { 
-        btn.innerHTML = 'تأكيد النقل'; btn.disabled = false; 
-    }
+        if(json.success) { showToast(json.message); closeModal('transfer-modal'); loadBranchData(); } 
+        else { showToast(json.message, true); } 
+    } catch(e) { showToast('خطأ بالاتصال بالخادم', true); } 
+    finally { btn.innerHTML = 'تأكيد النقل'; btn.disabled = false; }
 }
 
-// الدوال الباقية زي ما هي
+function searchAssets() {
+    const inputRaw = document.getElementById('asset-search').value.toLowerCase();
+    const input = normalizeArabic(inputRaw);
+    const deptFilter = document.getElementById('dept-filter').value;
+    const statusFilter = document.getElementById('status-filter').value;
+    const locFilter = document.getElementById('location-filter').value;
+    const rows = document.querySelectorAll('.asset-row');
+    
+    rows.forEach(row => {
+        let textToSearch = '';
+        row.querySelectorAll('.asset-search-val').forEach(c => textToSearch += c.textContent.toLowerCase() + ' ');
+        const osVal = row.querySelector('.os-search-val').textContent.trim();
+        const locVal = row.querySelector('.loc-search-val').textContent.trim();
+        const statusVal = row.getAttribute('data-status');
+        
+        const matchesText = normalizeArabic(textToSearch).includes(input);
+        const matchesDept = (deptFilter === 'all' || osVal === deptFilter);
+        const matchesStatus = (statusFilter === 'all' || statusVal === statusFilter);
+        const matchesLoc = (locFilter === 'all' || locVal === locFilter);
+        
+        row.style.display = (matchesText && matchesDept && matchesStatus && matchesLoc) ? "" : "none";
+    });
+}
+
 function makeTableResizable() {
     const table = document.getElementById("assets-table");
     const cols = table.querySelectorAll("th");
@@ -594,16 +685,6 @@ async function saveAssetChanges() {
     const actionType = currentSerial === '' ? "add_asset" : "update_asset";
     const payload = { action: actionType, branch: document.getElementById('branch-select').value, old_serial: currentSerial, admin: document.getElementById('display-user-name').innerText, updates: { "Board Serial Number": document.getElementById('a-serial').value, "اسم الموظف": newEmpName, "Computer Name": document.getElementById('a-comp').value, "User Name": document.getElementById('a-user').value, "O.S": document.getElementById('a-os').value, "Model": document.getElementById('a-model').value, "Hardware": document.getElementById('a-hard').value, "Printer": document.getElementById('a-print').value, "O.S. & Programes": document.getElementById('a-prog').value, "Branche \\ Location": document.getElementById('a-loc').value, "pass usb": document.getElementById('a-usb').value, "pass win": document.getElementById('a-win').value, "Phone and serial number": document.getElementById('a-phone').value } };
     try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); const json = await res.json(); if(json.success) { showToast('تم الحفظ بنجاح!'); closeModal('asset-edit-modal'); loadBranchData(); } else showToast(json.message, true); } catch(e) { showToast('خطأ بالاتصال', true); } finally { btn.innerHTML = 'حفظ البيانات'; btn.disabled = false; }
-}
-
-function revokeAsset(index) {
-    if(!checkPermission()) return;
-    if(!confirm("هل أنت متأكد أنك تريد سحب هذا الجهاز وجعله متوفر؟")) return;
-    document.getElementById('a-old-serial').value = currentAssetsData[index]['Board Serial Number'] || currentAssetsData[index]['سيريال لاب توب'] || '';
-    document.getElementById('a-serial').value = document.getElementById('a-old-serial').value;
-    document.getElementById('a-emp').value = ""; 
-    document.getElementById('a-comp').value = currentAssetsData[index]['Computer Name'] || ''; document.getElementById('a-user').value = currentAssetsData[index]['User Name'] || ''; document.getElementById('a-os').value = currentAssetsData[index]['O.S'] || ''; document.getElementById('a-model').value = currentAssetsData[index]['Model'] || ''; document.getElementById('a-hard').value = currentAssetsData[index]['Hardware'] || currentAssetsData[index]['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = currentAssetsData[index]['Printer '] || currentAssetsData[index]['Printer'] || ''; document.getElementById('a-prog').value = currentAssetsData[index]['O.S. & Programes'] || ''; document.getElementById('a-loc').value = currentAssetsData[index]['Branche \\ Location '] || currentAssetsData[index]['Branche \\ Location'] || ''; document.getElementById('a-usb').value = currentAssetsData[index]['pass usb'] || ''; document.getElementById('a-win').value = currentAssetsData[index]['pass win'] || ''; document.getElementById('a-phone').value = currentAssetsData[index]['Phone and serial number'] || '';
-    saveAssetChanges();
 }
 
 // --- سجل الحركات (Logs) ---
