@@ -15,11 +15,18 @@ function colorizeText(text) {
     }).join('<span class="text-slate-600 font-black mx-2">/</span>');
 }
 
-let usersDB = [
+// 🚀 نظام الحسابات الدائم (مستقل عن تحديثات الكود)
+let defaultUsers = [
     { username: 'hazem', pass: '12345', role: 'Admin' },
     { username: 'admin', pass: '12345', role: 'Admin' },
     { username: 'viewer', pass: '12345', role: 'Viewer' }
 ];
+let usersDB = JSON.parse(localStorage.getItem('kitchino_all_users')) || defaultUsers;
+
+function saveUsersLocally() {
+    localStorage.setItem('kitchino_all_users', JSON.stringify(usersDB));
+}
+
 let currentUserRole = ''; 
 let inactivityTimer;
 
@@ -81,9 +88,32 @@ function renderUsersTable() {
         </tr>
     `).join(''); 
 }
-function addUser() { if(!checkPermission()) return; const u = document.getElementById('new-username').value.trim(); const p = document.getElementById('new-password').value.trim(); if(!u || !p) return showToast('يرجى كتابة البيانات', true); usersDB.push({username: u, pass: p, role: document.getElementById('new-role').value}); renderUsersTable(); document.getElementById('new-username').value = ''; document.getElementById('new-password').value = ''; showToast('تمت الإضافة بنجاح'); }
-function changePass(i) { if(!checkPermission()) return; usersDB[i].pass = document.getElementById(`pass-${i}`).value; showToast('تم تحديث كلمة المرور'); }
-function deleteUser(i) { if(!checkPermission()) return; if(usersDB[i].username.toLowerCase() === 'hazem') return showToast('لا يمكن حذف حساب الإدارة الأساسي', true); usersDB.splice(i,1); renderUsersTable(); showToast('تم الحذف'); }
+function addUser() { 
+    if(!checkPermission()) return; 
+    const u = document.getElementById('new-username').value.trim(); 
+    const p = document.getElementById('new-password').value.trim(); 
+    if(!u || !p) return showToast('يرجى كتابة البيانات', true); 
+    usersDB.push({username: u, pass: p, role: document.getElementById('new-role').value}); 
+    saveUsersLocally(); // 🚀 حفظ الحساب الجديد في المتصفح
+    renderUsersTable(); 
+    document.getElementById('new-username').value = ''; 
+    document.getElementById('new-password').value = ''; 
+    showToast('تمت الإضافة بنجاح'); 
+}
+function changePass(i) { 
+    if(!checkPermission()) return; 
+    usersDB[i].pass = document.getElementById(`pass-${i}`).value; 
+    saveUsersLocally(); // 🚀
+    showToast('تم تحديث كلمة المرور'); 
+}
+function deleteUser(i) { 
+    if(!checkPermission()) return; 
+    if(usersDB[i].username.toLowerCase() === 'hazem') return showToast('لا يمكن حذف حساب الإدارة الأساسي', true); 
+    usersDB.splice(i,1); 
+    saveUsersLocally(); // 🚀
+    renderUsersTable(); 
+    showToast('تم الحذف'); 
+}
 
 function showToast(msg, err=false) { const t=document.getElementById('toast'); t.className=`fixed top-5 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-xl shadow-2xl z-[9999] transition-opacity duration-300 flex items-center gap-3 text-white pointer-events-none border border-white/10 ${err?'bg-red-600':'bg-green-600'}`; document.getElementById('toast-msg').innerText=msg; t.querySelector('i').className=err?'fa-solid fa-circle-exclamation text-xl':'fa-solid fa-circle-check text-xl'; t.classList.remove('opacity-0'); setTimeout(()=>t.classList.add('opacity-0'),3500); }
 function openModal(id) { document.getElementById(id).classList.remove('hidden'); if(id==='settings-modal') renderUsersTable(); setTimeout(()=>document.getElementById(id).classList.remove('opacity-0'),10); }
@@ -312,10 +342,9 @@ async function saveTicket() {
 }
 
 // ==========================================
-// 🚀 قسم الأصول (مضاف له التحديد والطباعة المجمعة)
+// 🚀 قسم الأصول 
 // ==========================================
 let currentAssetsData = [];
-// الذاكرة المؤقتة لحفظ الموظفين اللي بتعلم عليهم للطباعة
 let selectedEmployeesForPrint = [];
 
 function openAssetsModal() { 
@@ -329,6 +358,10 @@ function openAssetsModal() {
 async function loadBranchData() {
     const tbody = document.getElementById('assets-tbody');
     tbody.innerHTML = '<tr><td colspan="17" class="text-center py-20"><span class="loader"></span> جاري سحب البيانات...</td></tr>';
+    
+    // تصفير المربع المجمع
+    document.getElementById('selectAllCheckbox').checked = false;
+
     const branch = document.getElementById('branch-select').value;
     try {
         const res = await fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(branch)}`);
@@ -395,10 +428,9 @@ function renderAssetsTable() {
         const hwRaw = r['Hardware'] || r['مواصفات الجهاز'] || '';
         const coloredHardware = colorizeText(hwRaw);
 
-        // 🚀 تحديد إذا كان الموظف متعلم عليه من قبل ولا لأ
         const isChecked = selectedEmployeesForPrint.some(e => e.name === empName && e.company === currentCompany);
-        // زرار التحديد يظهر فقط لو في موظف
-        const checkboxHtml = empName ? `<input type="checkbox" class="w-4 h-4 cursor-pointer accent-blue-500 rounded border-slate-600" data-emp="${empName}" data-title="${r['O.S'] || ''}" data-company="${currentCompany}" onchange="togglePrintSelection(this)" ${isChecked ? 'checked' : ''}>` : '-';
+        // 🚀 تم إضافة كلاس print-checkbox للتعرف عليه
+        const checkboxHtml = empName ? `<input type="checkbox" class="print-checkbox w-4 h-4 cursor-pointer accent-blue-500 rounded border-slate-600" data-emp="${empName}" data-title="${r['O.S'] || ''}" data-company="${currentCompany}" onchange="togglePrintSelection(this)" ${isChecked ? 'checked' : ''}>` : '-';
 
         html += `
             <tr class="data-row asset-row" data-status="${statusVal}">
@@ -431,7 +463,6 @@ function renderAssetsTable() {
     tbody.innerHTML = html || '<tr><td colspan="17" class="text-center py-20 text-slate-500">لا توجد بيانات مسجلة في هذا الفرع</td></tr>';
 }
 
-// 🚀 دالة إضافة وإزالة الموظف من قائمة الطباعة
 function togglePrintSelection(checkbox) {
     const empData = {
         company: checkbox.dataset.company,
@@ -449,14 +480,26 @@ function togglePrintSelection(checkbox) {
     document.getElementById('print-count').innerText = selectedEmployeesForPrint.length;
 }
 
-// 🚀 دالة طباعة كشف A4 مجمع وشيك
+// 🚀 دالة تحديد الكل (التي تظهر في الجدول بناءً على الفلتر)
+function toggleAllPrintSelection(masterCheckbox) {
+    const checkboxes = document.querySelectorAll('.print-checkbox');
+    checkboxes.forEach(cb => {
+        // التأكد إن الصف معروض ومش مخفي بالفلتر
+        if (cb.closest('tr').style.display !== 'none') {
+            if (cb.checked !== masterCheckbox.checked) {
+                cb.checked = masterCheckbox.checked;
+                togglePrintSelection(cb); // استدعاء الدالة عشان العداد والذاكرة يتحدثوا
+            }
+        }
+    });
+}
+
 function printSelectedEmployees() {
     if (selectedEmployeesForPrint.length === 0) {
         showToast('برجاء تحديد موظف واحد على الأقل من الجدول أولاً', true);
         return;
     }
 
-    // تجميع الموظفين حسب الشركة
     const grouped = selectedEmployeesForPrint.reduce((acc, curr) => {
         if (!acc[curr.company]) acc[curr.company] = [];
         acc[curr.company].push(curr);
@@ -474,7 +517,7 @@ function printSelectedEmployees() {
                 h1 { text-align: center; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 30px; font-size: 26px;}
                 .company-box { margin-bottom: 40px; page-break-inside: avoid; }
                 .company-header { background-color: #1e293b; color: #fff; padding: 12px 20px; border-radius: 8px 8px 0 0; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;}
-                .emp-count { background: #38bdf8; color: #0f172a; padding: 4px 12px; border-radius: 20px; font-size: 14px; }
+                .emp-count { background: #38bdf8; color: #0f172a; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; }
                 table { width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; border-top: none; }
                 th, td { border: 1px solid #e2e8f0; padding: 12px 15px; text-align: right; }
                 th { background-color: #f8fafc; font-weight: bold; color: #475569; width: 50%; font-size: 16px;}
@@ -632,6 +675,9 @@ function searchAssets() {
     const locFilter = document.getElementById('location-filter').value;
     const rows = document.querySelectorAll('.asset-row');
     
+    // إزالة علامة الصح من "تحديد الكل" لو المستخدم بدأ يبحث عشان متلخبطش التحديد
+    document.getElementById('selectAllCheckbox').checked = false;
+    
     rows.forEach(row => {
         let textToSearch = '';
         row.querySelectorAll('.asset-search-val').forEach(c => textToSearch += c.textContent.toLowerCase() + ' ');
@@ -685,6 +731,16 @@ async function saveAssetChanges() {
     const actionType = currentSerial === '' ? "add_asset" : "update_asset";
     const payload = { action: actionType, branch: document.getElementById('branch-select').value, old_serial: currentSerial, admin: document.getElementById('display-user-name').innerText, updates: { "Board Serial Number": document.getElementById('a-serial').value, "اسم الموظف": newEmpName, "Computer Name": document.getElementById('a-comp').value, "User Name": document.getElementById('a-user').value, "O.S": document.getElementById('a-os').value, "Model": document.getElementById('a-model').value, "Hardware": document.getElementById('a-hard').value, "Printer": document.getElementById('a-print').value, "O.S. & Programes": document.getElementById('a-prog').value, "Branche \\ Location": document.getElementById('a-loc').value, "pass usb": document.getElementById('a-usb').value, "pass win": document.getElementById('a-win').value, "Phone and serial number": document.getElementById('a-phone').value } };
     try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); const json = await res.json(); if(json.success) { showToast('تم الحفظ بنجاح!'); closeModal('asset-edit-modal'); loadBranchData(); } else showToast(json.message, true); } catch(e) { showToast('خطأ بالاتصال', true); } finally { btn.innerHTML = 'حفظ البيانات'; btn.disabled = false; }
+}
+
+function revokeAsset(index) {
+    if(!checkPermission()) return;
+    if(!confirm("هل أنت متأكد أنك تريد سحب هذا الجهاز وجعله متوفر؟")) return;
+    document.getElementById('a-old-serial').value = currentAssetsData[index]['Board Serial Number'] || currentAssetsData[index]['سيريال لاب توب'] || '';
+    document.getElementById('a-serial').value = document.getElementById('a-old-serial').value;
+    document.getElementById('a-emp').value = ""; 
+    document.getElementById('a-comp').value = currentAssetsData[index]['Computer Name'] || ''; document.getElementById('a-user').value = currentAssetsData[index]['User Name'] || ''; document.getElementById('a-os').value = currentAssetsData[index]['O.S'] || ''; document.getElementById('a-model').value = currentAssetsData[index]['Model'] || ''; document.getElementById('a-hard').value = currentAssetsData[index]['Hardware'] || currentAssetsData[index]['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = currentAssetsData[index]['Printer '] || currentAssetsData[index]['Printer'] || ''; document.getElementById('a-prog').value = currentAssetsData[index]['O.S. & Programes'] || ''; document.getElementById('a-loc').value = currentAssetsData[index]['Branche \\ Location '] || currentAssetsData[index]['Branche \\ Location'] || ''; document.getElementById('a-usb').value = currentAssetsData[index]['pass usb'] || ''; document.getElementById('a-win').value = currentAssetsData[index]['pass win'] || ''; document.getElementById('a-phone').value = currentAssetsData[index]['Phone and serial number'] || '';
+    saveAssetChanges();
 }
 
 // --- سجل الحركات (Logs) ---
