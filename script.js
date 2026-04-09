@@ -45,7 +45,7 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('display-user-name').innerText = userObj.username;
         document.getElementById('display-user-role').innerText = userObj.role;
         startInactivityTimer();
-        // 🚀 سحب البيانات في الخلفية
+        // سحب البيانات في الخلفية
         preloadData();
     }
 });
@@ -68,7 +68,6 @@ function handleLogin() {
             document.getElementById('display-user-role').innerText = v.role;
             showToast('جاري تجهيز بيانات النظام في الخلفية...');
             startInactivityTimer();
-            // 🚀 سحب البيانات في الخلفية فور الدخول
             preloadData();
         }, 500);
     } else { showToast('خطأ في اسم المستخدم أو كلمة المرور', true); }
@@ -92,19 +91,16 @@ function checkPermission() {
 function preloadData() {
     const branch = document.getElementById('branch-select')?.value || 'kitchino';
     
-    // الأصول
     fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(branch)}`)
         .then(res => res.json())
         .then(data => { currentAssetsData = data; currentAssetsBranch = branch; isAssetsLoaded = true; })
         .catch(e => console.log('Asset preload failed'));
         
-    // التذاكر
     fetch(`${API_URL}?type=tickets`)
         .then(res => res.json())
         .then(data => { allTicketsData = data; isTicketsLoaded = true; })
         .catch(e => console.log('Tickets preload failed'));
 
-    // الشبكات
     fetch(`${API_URL}?type=networks`)
         .then(res => res.json())
         .then(data => { 
@@ -565,7 +561,7 @@ function toggleAllPrintSelection(masterCheckbox) {
     });
 }
 
-// 🚀 دالة طباعة كشف A4 مجمع باحترافية كاملة (بألوان اللوجو الرسمي Kitchino)
+// 🚀 دالة طباعة كشف A4 مجمع (النسخة النهائية لحل مشكلة الصفحات الفارغة)
 function printSelectedEmployees() {
     if (selectedEmployeesForPrint.length === 0) {
         showToast('برجاء تحديد موظف واحد على الأقل من الجدول أولاً', true);
@@ -584,30 +580,28 @@ function printSelectedEmployees() {
         <head>
             <title>كشف تسليم عُهد الموظفين - KITCHINO IT</title>
             <style>
-                @page { size: A4; margin: 10mm; } 
+                @page { size: A4; margin: 8mm 10mm; } 
                 body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; color: #333; background: #fff; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                 
                 /* العلامة المائية */
-                .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 160pt; font-weight: 900; color: rgba(0, 0, 0, 0.04); font-family: Arial, sans-serif; pointer-events: none; z-index: -1; }
+                .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 160pt; font-weight: 900; color: rgba(0, 0, 0, 0.03); font-family: Arial, sans-serif; pointer-events: none; z-index: -1; }
 
-                /* الهيكل الأساسي للطباعة */
-                table.master-table { width: 100%; border-collapse: collapse; border: none; }
-                table.master-table > thead { display: table-header-group; }
-                table.master-table > tfoot { display: table-footer-group; }
-                table.master-table > tbody > tr > td, 
-                table.master-table > thead > tr > td, 
-                table.master-table > tfoot > tr > td { border: none; padding: 0; background: transparent; }
-
-                /* 🚀 الهيدر والفوتر بألوان اللوجو (رمادي غامق #4a4a4a وأخضر #61b846) */
-                .header-strip { background: #4a4a4a; border-bottom: 8px solid #61b846; display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; color: #fff; margin-bottom: 15px; }
+                /* 🚀 الهيدر والفوتر الثابتين (السر في ثباتهم في كل صفحة وعدم التداخل) */
+                .fixed-header { position: fixed; top: 0; left: 0; width: 100%; height: 28mm; background: #4a4a4a; border-bottom: 8px solid #61b846; display: flex; justify-content: space-between; align-items: center; padding: 0 30px; box-sizing: border-box; color: #fff; z-index: 1000; }
                 .header-title { text-align: right; width: 100%; }
                 .header-title h1 { margin: 0; font-size: 26pt; font-weight: 900; letter-spacing: -1px; }
                 .header-title p { margin: 5px 0 0; font-size: 11pt; font-weight: bold; opacity: 0.9; }
 
-                .footer-strip { background: #4a4a4a; border-top: 8px solid #61b846; padding: 12px; text-align: center; color: rgba(255,255,255,0.8); font-size: 10pt; margin-top: 15px; }
+                .fixed-footer { position: fixed; bottom: 0; left: 0; width: 100%; height: 12mm; background: #4a4a4a; border-top: 6px solid #61b846; display: flex; justify-content: center; align-items: center; color: rgba(255,255,255,0.8); font-size: 10pt; z-index: 1000; box-sizing: border-box; }
+
+                /* 🚀 جدول الفواصل لإجبار المتصفح على حجز مساحة للهيدر والفوتر في كل صفحة */
+                table.layout-table { width: 100%; border-collapse: collapse; border: none; }
+                table.layout-table > thead > tr > td, table.layout-table > tfoot > tr > td, table.layout-table > tbody > tr > td { border: none; padding: 0; background: transparent; }
+                .header-space { height: 32mm; } /* مساحة تعادل الهيدر وزيادة بسيطة */
+                .footer-space { height: 15mm; } /* مساحة تعادل الفوتر */
 
                 /* العنوان الرئيسي */
-                .report-header { text-align: center; margin-top: 0; margin-bottom: 25px; }
+                .report-header { text-align: center; margin-top: 10px; margin-bottom: 25px; }
                 .report-header h2 { font-size: 20pt; color: #4a4a4a; border-bottom: 3px solid #61b846; padding-bottom: 8px; display: inline-block; font-weight: 900; margin: 0;}
 
                 /* تنسيق الجداول والصفوف */
@@ -621,35 +615,26 @@ function printSelectedEmployees() {
                 table.data-table th, table.data-table td { border: 1px solid #cbd5e1; padding: 10px 15px; text-align: right; }
                 table.data-table th { background-color: #fff; font-weight: 900; color: #4a4a4a; font-size: 15px; width: 50%;}
                 table.data-table td { font-size: 14px; color: #1e293b; font-weight: bold;}
-                table.data-table tr { page-break-inside: avoid; }
+                table.data-table tr { page-break-inside: avoid; } /* يمنع كسر الموظف على صفحتين */
                 table.data-table tr:nth-child(even) { background-color: #f1f5f9; }
             </style>
         </head>
         <body>
             <div class="watermark">IT</div>
             
-            <table class="master-table">
-                <thead>
-                    <tr>
-                        <td>
-                            <div class="header-strip">
-                                <div class="header-title">
-                                    <h1><span style="color:#61b846;">K</span>ITCHINO GROUP</h1>
-                                    <p>إدارة تكنولوجيا المعلومات | قطاع الدعم الفني والأصول</p>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                </thead>
-                <tfoot>
-                    <tr>
-                        <td>
-                            <div class="footer-strip">
-                                هذا التقرير تم إنشاؤه عبر نظام إدارة الأصول المركزي - Kitchino Group IT &copy; ${new Date().getFullYear()}
-                            </div>
-                        </td>
-                    </tr>
-                </tfoot>
+            <div class="fixed-header">
+                <div class="header-title">
+                    <h1><span style="color:#61b846;">K</span>ITCHINO GROUP</h1>
+                    <p>إدارة تكنولوجيا المعلومات | قطاع الدعم الفني والأصول</p>
+                </div>
+            </div>
+            
+            <div class="fixed-footer">
+                هذا التقرير تم إنشاؤه عبر نظام إدارة الأصول المركزي - Kitchino Group IT &copy; ${new Date().getFullYear()}
+            </div>
+
+            <table class="layout-table">
+                <thead><tr><td><div class="header-space"></div></td></tr></thead>
                 <tbody>
                     <tr>
                         <td>
@@ -696,6 +681,7 @@ function printSelectedEmployees() {
                         </td>
                     </tr>
                 </tbody>
+                <tfoot><tr><td><div class="footer-space"></div></td></tr></tfoot>
             </table>
             <script>
                 setTimeout(() => { window.print(); }, 800);
