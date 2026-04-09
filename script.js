@@ -15,7 +15,7 @@ function colorizeText(text) {
     }).join('<span class="text-slate-600 font-black mx-2">/</span>');
 }
 
-// 🚀 نظام الحسابات الدائم (مستقل عن تحديثات الكود)
+// 🚀 نظام الحسابات الدائم
 let defaultUsers = [
     { username: 'hazem', pass: '12345', role: 'Admin' },
     { username: 'admin', pass: '12345', role: 'Admin' },
@@ -565,7 +565,7 @@ function toggleAllPrintSelection(masterCheckbox) {
     });
 }
 
-// 🚀 دالة طباعة كشف A4 مجمع باحترافية كاملة (النسخة السحرية للطباعة)
+// 🚀 دالة طباعة كشف A4 مجمع باحترافية كاملة (بألوان اللوجو الرسمي Kitchino)
 function printSelectedEmployees() {
     if (selectedEmployeesForPrint.length === 0) {
         showToast('برجاء تحديد موظف واحد على الأقل من الجدول أولاً', true);
@@ -598,30 +598,30 @@ function printSelectedEmployees() {
                 table.master-table > thead > tr > td, 
                 table.master-table > tfoot > tr > td { border: none; padding: 0; background: transparent; }
 
-                /* الهيدر والفوتر باللون الأخضر العريض */
-                .header-strip { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); border-bottom: 8px solid #16a34a; display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; color: #fff; margin-bottom: 15px; }
+                /* 🚀 الهيدر والفوتر بألوان اللوجو (رمادي غامق #4a4a4a وأخضر #61b846) */
+                .header-strip { background: #4a4a4a; border-bottom: 8px solid #61b846; display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; color: #fff; margin-bottom: 15px; }
                 .header-title { text-align: right; width: 100%; }
-                .header-title h1 { margin: 0; font-size: 24pt; font-weight: 900; letter-spacing: -1px; }
+                .header-title h1 { margin: 0; font-size: 26pt; font-weight: 900; letter-spacing: -1px; }
                 .header-title p { margin: 5px 0 0; font-size: 11pt; font-weight: bold; opacity: 0.9; }
 
-                .footer-strip { background: linear-gradient(135deg, #1e3a8a 0%, #1e293b 100%); border-top: 8px solid #16a34a; padding: 12px; text-align: center; color: rgba(255,255,255,0.8); font-size: 10pt; margin-top: 15px; }
+                .footer-strip { background: #4a4a4a; border-top: 8px solid #61b846; padding: 12px; text-align: center; color: rgba(255,255,255,0.8); font-size: 10pt; margin-top: 15px; }
 
-                /* العنوان الرئيسي متظبط مسافاته */
+                /* العنوان الرئيسي */
                 .report-header { text-align: center; margin-top: 0; margin-bottom: 25px; }
-                .report-header h2 { font-size: 20pt; color: #1e293b; border-bottom: 3px solid #16a34a; padding-bottom: 8px; display: inline-block; font-weight: 900; margin: 0;}
+                .report-header h2 { font-size: 20pt; color: #4a4a4a; border-bottom: 3px solid #61b846; padding-bottom: 8px; display: inline-block; font-weight: 900; margin: 0;}
 
                 /* تنسيق الجداول والصفوف */
                 .company-box { margin-bottom: 30px; } 
                 .company-header { background-color: #f8fafc; padding: 12px 20px; border: 2px solid #cbd5e1; border-bottom: none; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0;}
-                .company-name { color: #16a34a; font-weight: 900; font-size: 18px;}
-                .emp-count { background: #1e3a8a; color: #fff; padding: 4px 15px; border-radius: 20px; font-size: 13px; font-weight: bold;}
+                .company-name { color: #61b846; font-weight: 900; font-size: 18px;}
+                .emp-count { background: #4a4a4a; color: #fff; padding: 4px 15px; border-radius: 20px; font-size: 13px; font-weight: bold;}
                 
                 table.data-table { width: 100%; border-collapse: collapse; border: 2px solid #cbd5e1; }
                 table.data-table thead { display: table-header-group; }
                 table.data-table th, table.data-table td { border: 1px solid #cbd5e1; padding: 10px 15px; text-align: right; }
-                table.data-table th { background-color: #fff; font-weight: 900; color: #1e3a8a; font-size: 15px; width: 50%;}
+                table.data-table th { background-color: #fff; font-weight: 900; color: #4a4a4a; font-size: 15px; width: 50%;}
                 table.data-table td { font-size: 14px; color: #1e293b; font-weight: bold;}
-                table.data-table tr { page-break-inside: avoid; } 
+                table.data-table tr { page-break-inside: avoid; }
                 table.data-table tr:nth-child(even) { background-color: #f1f5f9; }
             </style>
         </head>
@@ -634,7 +634,7 @@ function printSelectedEmployees() {
                         <td>
                             <div class="header-strip">
                                 <div class="header-title">
-                                    <h1>KITCHINO GROUP</h1>
+                                    <h1><span style="color:#61b846;">K</span>ITCHINO GROUP</h1>
                                     <p>إدارة تكنولوجيا المعلومات | قطاع الدعم الفني والأصول</p>
                                 </div>
                             </div>
