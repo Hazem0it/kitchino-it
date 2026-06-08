@@ -48,6 +48,34 @@
             <div onclick="openNetworksModal()" class="glass-card glass-btn p-6 border-t-4 border-t-green-500 flex flex-col items-center justify-center text-center group"><div class="bg-green-500/10 p-4 rounded-full mb-3 group-hover:scale-110 transition"><i class="fa-solid fa-network-wired text-3xl text-green-500"></i></div><h3 class="text-slate-400 font-bold">الشبكات والروترات</h3></div>
             <div onclick="openLogsModal()" class="glass-card glass-btn p-6 border-t-4 border-t-purple-500 flex flex-col items-center justify-center text-center group"><div class="bg-purple-500/10 p-4 rounded-full mb-3 group-hover:scale-110 transition"><i class="fa-solid fa-clock-rotate-left text-3xl text-purple-500"></i></div><h3 class="text-slate-400 font-bold">سجل الحركات (Log)</h3></div>
         </div>
+
+        <!-- Export Section - NEW -->
+        <div class="glass-card p-6 mb-10 border border-yellow-500/20">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="bg-yellow-500/10 p-3 rounded-full"><i class="fa-solid fa-file-export text-yellow-400 text-xl"></i></div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">تصدير البيانات للنظام المحلي</h3>
+                    <p class="text-sm text-slate-400">استخرج بيانات Google Sheets كـ JSON لاستيرادها في النظام المحلي على XAMPP</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <button id="export-btn" onclick="exportAllData()" class="bg-yellow-600 hover:bg-yellow-500 text-white px-6 py-3 rounded-xl font-bold transition shadow-[0_0_15px_rgba(202,138,4,0.3)] flex items-center gap-2">
+                    <i class="fa-solid fa-download"></i> تصدير كل البيانات (JSON)
+                </button>
+                <button onclick="exportTableData('assets')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-3 rounded-xl font-bold transition flex items-center gap-2">
+                    <i class="fa-solid fa-laptop"></i> تصدير الأجهزة فقط
+                </button>
+                <button onclick="exportTableData('tickets')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-3 rounded-xl font-bold transition flex items-center gap-2">
+                    <i class="fa-solid fa-ticket"></i> تصدير التذاكر فقط
+                </button>
+                <button onclick="exportTableData('networks')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-3 rounded-xl font-bold transition flex items-center gap-2">
+                    <i class="fa-solid fa-network-wired"></i> تصدير الشبكات فقط
+                </button>
+            </div>
+            <div class="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                <p class="text-yellow-400 text-sm"><i class="fa-solid fa-lightbulb ml-2"></i><strong>خطوات الاستيراد في النظام المحلي:</strong> اضغط "تصدير كل البيانات" → افتح النظام المحلي → اذهب لصفحة الاستيراد → الصق JSON في المربعات المناسبة → اضغط استيراد.</p>
+            </div>
+        </div>
     </div>
 
     <div id="logs-modal" class="fixed inset-0 modal-overlay z-[70] hidden opacity-0 transition-opacity duration-300 flex justify-center items-center p-4">
@@ -107,7 +135,7 @@
     <div id="ticket-form-modal" class="fixed inset-0 bg-black/90 z-[60] hidden opacity-0 transition-opacity flex items-center justify-center p-4">
         <div class="bg-slate-800 border border-slate-600 p-8 rounded-2xl w-full max-w-5xl shadow-2xl">
             <h2 id="ticket-form-title" class="text-2xl font-bold text-white mb-6 border-b border-slate-700 pb-4">التذكرة</h2><input type="hidden" id="t-id">
-            
+
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div>
                     <label class="block text-slate-400 text-sm mb-2 font-bold">الشركة</label>
@@ -155,9 +183,9 @@
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/80">
                 <div class="flex gap-3 items-center flex-wrap w-full md:w-auto">
                     <h2 class="text-2xl font-bold text-white ml-2"><i class="fa-solid fa-laptop-code text-cyan-400 ml-2"></i>الأصول</h2>
-                    
+
                     <button onclick="openAssetEdit(-1)" class="bg-cyan-600 hover:bg-cyan-500 transition text-white px-4 py-2 rounded-lg font-bold ml-2 shadow-[0_0_10px_rgba(34,211,238,0.2)]"><i class="fa-solid fa-plus"></i> إضافة جهاز</button>
-                    
+
                     <button onclick="printSelectedEmployees()" class="bg-blue-600 hover:bg-blue-500 transition text-white px-4 py-2 rounded-lg font-bold ml-2 shadow-[0_0_10px_rgba(37,99,235,0.2)]" title="طباعة كشف بأسماء الموظفين المحددين">
                         <i class="fa-solid fa-file-lines"></i> كشف الموظفين <span id="print-count" class="bg-white text-blue-600 px-2 py-0.5 rounded-full text-xs ml-1">0</span>
                     </button>
@@ -246,7 +274,7 @@
             </div>
             <input type="hidden" id="tr-serial">
             <input type="hidden" id="tr-emp">
-            
+
             <div class="space-y-4">
                 <div>
                     <label class="block text-slate-400 text-sm mb-2 font-bold">الشركة الحالية</label>
@@ -321,7 +349,7 @@
                 <div class="md:col-span-3 border-b border-slate-700 pb-2 mb-2 mt-4"><h3 class="text-cyan-400 font-bold"><i class="fa-solid fa-server"></i> إعدادات الروتر</h3></div>
                 <div><label class="block text-green-400 text-xs font-bold mb-1">IP Router</label><input type="text" id="n-ip" class="w-full bg-slate-900 border border-slate-700 text-green-300 font-mono rounded-lg p-3 outline-none" dir="ltr"></div>
                 <div><label class="block text-slate-400 text-xs font-bold mb-1">Pass Router</label><input type="text" id="n-passrouter" class="w-full bg-slate-900 border border-slate-700 text-white font-mono rounded-lg p-3 outline-none"></div>
-                
+
                 <div class="md:col-span-3 border-b border-slate-700 pb-2 mb-2 mt-4"><h3 class="text-purple-400 font-bold"><i class="fa-solid fa-wifi"></i> إعدادات الـ WiFi والتطبيقات</h3></div>
                 <div><label class="block text-purple-400 text-xs font-bold mb-1">Name WiFi</label><input type="text" id="n-wifiname" class="w-full bg-slate-900 border border-slate-700 text-white font-bold rounded-lg p-3 outline-none"></div>
                 <div><label class="block text-slate-400 text-xs font-bold mb-1">Pass WiFi</label><input type="text" id="n-wifipass" class="w-full bg-slate-900 border border-slate-700 text-yellow-400 font-mono rounded-lg p-3 outline-none"></div>

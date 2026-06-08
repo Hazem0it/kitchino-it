@@ -130,6 +130,86 @@ function closeModal(id) { document.getElementById(id).classList.add('opacity-0')
 function openSettingsModal() { openModal('settings-modal'); }
 
 // ==========================================
+// 🚀 EXPORT JSON FROM GOOGLE SHEETS (NEW)
+// ==========================================
+async function exportAllData() {
+    if(!confirm('سيتم جلب كل البيانات من Google Sheets وتصديرها كـ JSON.\nهل تريد المتابعة؟')) return;
+
+    const btn = document.getElementById('export-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="loader !w-4 !h-4"></span> جاري التصدير...';
+    btn.disabled = true;
+
+    try {
+        showToast('جاري جلب بيانات الأجهزة...');
+        const assetsRes = await fetch(`${API_URL}?type=assets&branch=kitchino`);
+        const assetsData = await assetsRes.json();
+
+        showToast('جاري جلب بيانات التذاكر...');
+        const ticketsRes = await fetch(`${API_URL}?type=tickets`);
+        const ticketsData = await ticketsRes.json();
+
+        showToast('جاري جلب بيانات الشبكات...');
+        const networksRes = await fetch(`${API_URL}?type=networks`);
+        const networksData = await networksRes.json();
+
+        const exportPackage = {
+            exported_at: new Date().toISOString(),
+            source: 'Kitchino Google Sheets',
+            assets: assetsData,
+            tickets: ticketsData,
+            networks: networksData
+        };
+
+        const blob = new Blob([JSON.stringify(exportPackage, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `kitchino_export_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast('تم تصدير كل البيانات بنجاح! يمكنك الآن استيرادها في النظام المحلي.');
+    } catch(e) {
+        showToast('خطأ أثناء التصدير: ' + e.message, true);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+async function exportTableData(tableType) {
+    let url = `${API_URL}?type=${tableType}`;
+    if (tableType === 'assets') {
+        const branch = prompt('أدخل اسم الشركة للتصدير:', 'kitchino');
+        if (!branch) return;
+        url += `&branch=${encodeURIComponent(branch)}`;
+    }
+
+    try {
+        showToast(`جاري جلب بيانات ${tableType}...`);
+        const res = await fetch(url);
+        const data = await res.json();
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const downloadUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `kitchino_${tableType}_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(downloadUrl);
+
+        showToast(`تم تصدير ${data.length} سجل من ${tableType}`);
+    } catch(e) {
+        showToast('خطأ أثناء التصدير', true);
+    }
+}
+
+// ==========================================
 // 🚀 قسم التذاكر
 // ==========================================
 let allTicketsData = []; let currentFilter = 'all';
@@ -178,7 +258,7 @@ async function loadCompanyDataForTicket(selectedLoc = '', selectedUser = '') {
         const res = await fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(company)}`);
         currentTicketAssets = await res.json();
         const uniqueLocs = new Set();
-        currentTicketAssets.forEach(r => { const loc = (r['Branche \\ Location '] || r['Branche \\ Location'] || '').trim(); if (loc && loc !== '-') uniqueLocs.add(loc); });
+        currentTicketAssets.forEach(r => { const loc = (r['Branche \ Location '] || r['Branche \ Location'] || '').trim(); if (loc && loc !== '-') uniqueLocs.add(loc); });
         let locHtml = '<option value="">-- كل الفروع --</option>'; Array.from(uniqueLocs).sort().forEach(loc => { locHtml += `<option value="${loc}">${loc}</option>`; }); locSelect.innerHTML = locHtml;
         if (selectedLoc && uniqueLocs.has(selectedLoc)) locSelect.value = selectedLoc; else if (selectedLoc) { locSelect.innerHTML += `<option value="${selectedLoc}">${selectedLoc}</option>`; locSelect.value = selectedLoc; }
         filterUsersByLocation(selectedUser);
@@ -188,7 +268,7 @@ async function loadCompanyDataForTicket(selectedLoc = '', selectedUser = '') {
 function filterUsersByLocation(selectedUser = '') {
     const locSelect = document.getElementById('t-location').value; const userSelect = document.getElementById('t-user');
     const uniqueUsers = new Set();
-    currentTicketAssets.forEach(r => { const rLoc = (r['Branche \\ Location '] || r['Branche \\ Location'] || '').trim(); const empName = (r['اسم الموظف'] || '').trim(); if (empName) { if (!locSelect || locSelect === rLoc) { uniqueUsers.add(empName); } } });
+    currentTicketAssets.forEach(r => { const rLoc = (r['Branche \ Location '] || r['Branche \ Location'] || '').trim(); const empName = (r['اسم الموظف'] || '').trim(); if (empName) { if (!locSelect || locSelect === rLoc) { uniqueUsers.add(empName); } } });
     let userHtml = '<option value="">-- اختر الموظف --</option>'; Array.from(uniqueUsers).sort().forEach(user => { userHtml += `<option value="${user}">${user}</option>`; }); userSelect.innerHTML = userHtml;
     if (selectedUser && uniqueUsers.has(selectedUser)) userSelect.value = selectedUser; else if (selectedUser) { userSelect.innerHTML += `<option value="${selectedUser}">${selectedUser}</option>`; userSelect.value = selectedUser; }
 }
@@ -199,8 +279,8 @@ async function addNewUserFromTicket() {
     const newName = prompt('أدخل اسم الموظف الجديد:'); if (!newName || newName.trim() === '') return;
     let currentLoc = document.getElementById('t-location').value; const newLocation = prompt(`أدخل الفرع الخاص بـ ${newName}:`, currentLoc || 'الفرع الرئيسي'); if(newLocation === null) return; 
     const userSelect = document.getElementById('t-user'); userSelect.innerHTML += `<option value="${newName}" selected>جاري التسجيل...</option>`; userSelect.value = newName;
-    const payload = { action: "add_asset", branch: company, admin: document.getElementById('display-user-name').innerText, updates: { "Board Serial Number": "PENDING-" + Math.floor(Math.random() * 100000), "اسم الموظف": newName, "Branche \\ Location": newLocation } };
-    try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: {'Content-Type': 'text/plain;charset=utf-8'} }); const json = await res.json(); if(json.success) { showToast(`تم إضافة ${newName} لفرع ${newLocation}!`); await loadCompanyDataForTicket(newLocation, newName); } else { showToast(json.message, true); await loadCompanyDataForTicket(); } } catch(e) { showToast('خطأ بالاتصال', true); }
+    const payload = { action: "add_asset", branch: company, admin: document.getElementById('display-user-name').innerText, updates: { "Board Serial Number": "PENDING-" + Math.floor(Math.random() * 100000), "اسم الموظف": newName, "Branche \ Location": newLocation } };
+    try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: {'Content-Type':'text/plain;charset=utf-8'} }); const json = await res.json(); if(json.success) { showToast(`تم إضافة ${newName} لفرع ${newLocation}!`); await loadCompanyDataForTicket(newLocation, newName); } else { showToast(json.message, true); await loadCompanyDataForTicket(); } } catch(e) { showToast('خطأ بالاتصال', true); }
 }
 
 async function openTicketForm(idx=-1) { 
@@ -232,7 +312,7 @@ async function saveTicket() {
 }
 
 // ==========================================
-// 🚀 قسم الأصول (مضاف له الدقة في التحديد برقم الباركود)
+// 🚀 قسم الأصول
 // ==========================================
 let currentAssetsData = [];
 let selectedEmployeesForPrint = [];
@@ -250,7 +330,7 @@ function forceRefreshAssets() { loadBranchData(true); }
 async function loadBranchData(force = false) {
     const tbody = document.getElementById('assets-tbody');
     const branch = document.getElementById('branch-select').value;
-    
+
     document.getElementById('selectAllCheckbox').checked = false;
 
     if (!force && isAssetsLoaded && currentAssetsBranch === branch && currentAssetsData.length > 0) {
@@ -275,7 +355,7 @@ function updateDeptDropdown(data) {
 
 function updateLocationDropdown(data) {
     const locSelect = document.getElementById('location-filter'); const uniqueLocs = new Set();
-    data.forEach(r => { const loc = (r['Branche \\ Location '] || r['Branche \\ Location'] || '').trim(); if(loc && loc !== '-') uniqueLocs.add(loc); });
+    data.forEach(r => { const loc = (r['Branche \ Location '] || r['Branche \ Location'] || '').trim(); if(loc && loc !== '-') uniqueLocs.add(loc); });
     let html = '<option value="all">كل المواقع</option>'; uniqueLocs.forEach(loc => { html += `<option value="${loc}">${loc}</option>`; }); locSelect.innerHTML = html;
 }
 
@@ -289,10 +369,10 @@ function renderAssetsTable() {
         const serialRaw = r['Board Serial Number'] || r['سيريال لاب توب'] || '';
         const empName = r['اسم الموظف'] || '';
         const prevEmp = r['الموظف السابق'] || '';
-        
+
         if(!serialRaw && !empName) return;
         count++;
-        
+
         const barcodeID = `${prefix}-${String(count).padStart(3, '0')}`;
 
         let empDisplay = ''; let statusVal = 'inuse'; let printTitle = empName;
@@ -308,7 +388,6 @@ function renderAssetsTable() {
         const hwRaw = r['Hardware'] || r['مواصفات الجهاز'] || '';
         const coloredHardware = colorizeText(hwRaw);
 
-        // 🚀 تم تعديل الـ isChecked ليعتمد على الباركود الفريد بدلاً من الاسم
         const isChecked = selectedEmployeesForPrint.some(e => e.id === barcodeID);
         const checkboxHtml = empName ? `<input type="checkbox" class="print-checkbox w-4 h-4 cursor-pointer accent-blue-500 rounded border-slate-600" data-id="${barcodeID}" data-emp="${empName}" data-title="${r['O.S'] || ''}" data-company="${currentCompany}" onchange="togglePrintSelection(this)" ${isChecked ? 'checked' : ''}>` : '-';
 
@@ -326,7 +405,7 @@ function renderAssetsTable() {
                 <td class="p-4 text-xs text-slate-300 max-w-[350px] truncate text-center" title="${hwRaw}" dir="ltr">${coloredHardware}</td>
                 <td class="p-4 text-xs text-slate-300 text-center">${r['Printer '] || r['Printer'] || '-'}</td>
                 <td class="p-4 text-xs text-slate-300 max-w-[200px] truncate text-center" title="${r['O.S. & Programes'] || ''}">${r['O.S. & Programes'] || '-'}</td>
-                <td class="p-4 text-xs text-slate-300 loc-search-val text-center">${r['Branche \\ Location '] || r['Branche \\ Location'] || '-'}</td>
+                <td class="p-4 text-xs text-slate-300 loc-search-val text-center">${r['Branche \ Location '] || r['Branche \ Location'] || '-'}</td>
                 <td class="p-4 text-xs font-mono text-yellow-400 text-center">${r['pass usb'] || '-'}</td>
                 <td class="p-4 text-xs font-mono text-yellow-400 text-center">${r['pass win'] || '-'}</td>
                 <td class="p-4 text-xs text-slate-300 text-center">${r['Phone and serial number'] || '-'}</td>
@@ -343,7 +422,6 @@ function renderAssetsTable() {
     tbody.innerHTML = html || '<tr><td colspan="17" class="text-center py-20 text-slate-500">لا توجد بيانات مسجلة في هذا الفرع</td></tr>';
 }
 
-// 🚀 تم التعديل للاعتماد على الـ ID لضمان دقة العداد 100%
 function togglePrintSelection(checkbox) {
     const empData = {
         id: checkbox.dataset.id,
@@ -351,7 +429,7 @@ function togglePrintSelection(checkbox) {
         name: checkbox.dataset.emp,
         title: checkbox.dataset.title
     };
-    
+
     if (checkbox.checked) {
         if (!selectedEmployeesForPrint.some(e => e.id === empData.id)) {
             selectedEmployeesForPrint.push(empData);
@@ -374,7 +452,6 @@ function toggleAllPrintSelection(masterCheckbox) {
     });
 }
 
-// 🚀 دالة طباعة كشف A4 مجمع (حل مشكلة الصفحات والتداخل تماماً باستخدام Native thead/tfoot)
 function printSelectedEmployees() {
     if (selectedEmployeesForPrint.length === 0) {
         showToast('برجاء تحديد موظف واحد على الأقل من الجدول أولاً', true);
@@ -395,36 +472,24 @@ function printSelectedEmployees() {
             <style>
                 @page { size: A4; margin: 10mm; } 
                 body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; color: #333; background: #fff; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                
-                /* بناء جدول حاوي للصفحة لضمان تكرار الهيدر والفوتر بشكل نظيف */
                 table.page-layout { width: 100%; border-collapse: collapse; border: none; }
                 table.page-layout > thead { display: table-header-group; }
                 table.page-layout > tfoot { display: table-footer-group; }
                 table.page-layout > thead > tr > td, 
                 table.page-layout > tbody > tr > td, 
                 table.page-layout > tfoot > tr > td { border: none; padding: 0; background: none; }
-                
-                /* الهيدر المتكرر */
                 .header-content { background: #4a4a4a; border-bottom: 8px solid #61b846; display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; color: #fff; margin-bottom: 20px; }
                 .header-title { text-align: right; width: 100%; }
                 .header-title h1 { margin: 0; font-size: 26pt; font-weight: 900; letter-spacing: -1px; }
                 .header-title p { margin: 5px 0 0; font-size: 11pt; font-weight: bold; opacity: 0.9; }
-
-                /* الفوتر المتكرر */
                 .footer-content { background: #4a4a4a; border-top: 8px solid #61b846; padding: 12px; text-align: center; color: rgba(255,255,255,0.8); font-size: 10pt; margin-top: 20px; }
-
-                /* العلامة المائية */
                 .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 180pt; font-weight: 900; color: rgba(0, 0, 0, 0.04); font-family: Arial, sans-serif; pointer-events: none; z-index: -1; }
-
-                /* تنسيق المحتوى الداخلي */
                 .report-header { text-align: center; margin-bottom: 30px; }
                 .report-header h2 { font-size: 22pt; color: #4a4a4a; border-bottom: 3px solid #61b846; padding-bottom: 10px; display: inline-block; font-weight: 900; margin: 0;}
-                
                 .company-box { margin-bottom: 40px; } 
                 .company-header { background-color: #f8fafc; padding: 15px 20px; border: 2px solid #cbd5e1; border-bottom: none; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0;}
                 .company-name { color: #61b846; font-weight: 900; font-size: 20px;}
                 .emp-count { background: #1e3a8a; color: #fff; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold;}
-                
                 table.data-table { width: 100%; border-collapse: collapse; border: 2px solid #cbd5e1; }
                 table.data-table th, table.data-table td { border: 1px solid #cbd5e1; padding: 12px 20px; text-align: right; }
                 table.data-table th { background-color: #fff; font-weight: 900; color: #1e3a8a; font-size: 16px; width: 33%;}
@@ -435,7 +500,6 @@ function printSelectedEmployees() {
         </head>
         <body>
             <div class="watermark">IT</div>
-            
             <table class="page-layout">
                 <thead>
                     <tr>
@@ -507,7 +571,6 @@ function printSelectedEmployees() {
                     </tr>
                 </tbody>
             </table>
-            
             <script>
                 setTimeout(() => { window.print(); }, 1000);
             <\/script>
@@ -536,7 +599,7 @@ function printAllBarcodes() {
     let win = window.open('', '', 'width=800,height=600');
     const currentCompany = document.getElementById('branch-select').value;
     const prefix = currentCompany.substring(0,3).toUpperCase();
-    
+
     let html = `<html><head><title>Print All Barcodes</title><script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script><style>.grid{display:grid; grid-template-columns: repeat(2, 1fr); gap: 20px; font-family:sans-serif;} .card{text-align:center; border:2px dashed #000; padding:15px; border-radius:10px; break-inside: avoid;}</style></head><body><div class="grid">`;
 
     let count = 0;
@@ -557,10 +620,11 @@ function printAllBarcodes() {
          if(!serialRaw && !empName) return;
          count++;
          let code = `${prefix}-${String(count).padStart(3, '0')}`;
-         html += `JsBarcode("#bc-${count}", "${code}", {displayValue:true, height: 60, fontSize: 16});\n`;
+         html += `JsBarcode("#bc-${count}", "${code}", {displayValue:true, height: 60, fontSize: 16});
+`;
     });
     html += `setTimeout(()=>window.print(), 1000);<\/script></body></html>`;
-    
+
     win.document.write(html);
     win.document.close();
 }
@@ -577,14 +641,14 @@ function openTransferModal(index) {
     document.getElementById('tr-emp').value = empName;
     document.getElementById('tr-old-branch').value = currentCompany;
     document.getElementById('tr-new-branch').value = currentCompany; 
-    
+
     openModal('transfer-modal');
 }
 
 async function confirmTransfer() {
     if(!checkPermission()) return;
     const btn = document.getElementById('save-transfer-btn'); 
-    
+
     const oldBranch = document.getElementById('tr-old-branch').value;
     const newBranch = document.getElementById('tr-new-branch').value;
     const serial = document.getElementById('tr-serial').value;
@@ -619,21 +683,21 @@ function searchAssets() {
     const statusFilter = document.getElementById('status-filter').value;
     const locFilter = document.getElementById('location-filter').value;
     const rows = document.querySelectorAll('.asset-row');
-    
+
     document.getElementById('selectAllCheckbox').checked = false;
-    
+
     rows.forEach(row => {
         let textToSearch = '';
         row.querySelectorAll('.asset-search-val').forEach(c => textToSearch += c.textContent.toLowerCase() + ' ');
         const osVal = row.querySelector('.os-search-val').textContent.trim();
         const locVal = row.querySelector('.loc-search-val').textContent.trim();
         const statusVal = row.getAttribute('data-status');
-        
+
         const matchesText = normalizeArabic(textToSearch).includes(input);
         const matchesDept = (deptFilter === 'all' || osVal === deptFilter);
         const matchesStatus = (statusFilter === 'all' || statusVal === statusFilter);
         const matchesLoc = (locFilter === 'all' || locVal === locFilter);
-        
+
         row.style.display = (matchesText && matchesDept && matchesStatus && matchesLoc) ? "" : "none";
     });
 }
@@ -659,7 +723,7 @@ function openAssetEdit(index = -1) {
     } else {
         document.getElementById('asset-form-title').innerHTML = '<i class="fa-solid fa-pen text-cyan-500 ml-2"></i>تعديل بيانات الجهاز';
         const r = currentAssetsData[index]; const serial = r['Board Serial Number'] || r['سيريال لاب توب'] || '';
-        document.getElementById('a-old-serial').value = serial; document.getElementById('a-serial').value = serial; document.getElementById('a-emp').value = r['اسم الموظف'] || ''; document.getElementById('a-comp').value = r['Computer Name'] || ''; document.getElementById('a-user').value = r['User Name'] || ''; document.getElementById('a-os').value = r['O.S'] || ''; document.getElementById('a-model').value = r['Model'] || ''; document.getElementById('a-hard').value = r['Hardware'] || r['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = r['Printer '] || r['Printer'] || ''; document.getElementById('a-prog').value = r['O.S. & Programes'] || ''; document.getElementById('a-loc').value = r['Branche \\ Location '] || r['Branche \\ Location'] || ''; document.getElementById('a-usb').value = r['pass usb'] || ''; document.getElementById('a-win').value = r['pass win'] || ''; document.getElementById('a-phone').value = r['Phone and serial number'] || '';
+        document.getElementById('a-old-serial').value = serial; document.getElementById('a-serial').value = serial; document.getElementById('a-emp').value = r['اسم الموظف'] || ''; document.getElementById('a-comp').value = r['Computer Name'] || ''; document.getElementById('a-user').value = r['User Name'] || ''; document.getElementById('a-os').value = r['O.S'] || ''; document.getElementById('a-model').value = r['Model'] || ''; document.getElementById('a-hard').value = r['Hardware'] || r['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = r['Printer '] || r['Printer'] || ''; document.getElementById('a-prog').value = r['O.S. & Programes'] || ''; document.getElementById('a-loc').value = r['Branche \ Location '] || r['Branche \ Location'] || ''; document.getElementById('a-usb').value = r['pass usb'] || ''; document.getElementById('a-win').value = r['pass win'] || ''; document.getElementById('a-phone').value = r['Phone and serial number'] || '';
     }
     openModal('asset-edit-modal');
 }
@@ -669,11 +733,12 @@ async function saveAssetChanges() {
     const newEmpName = document.getElementById('a-emp').value.trim(); const currentSerial = document.getElementById('a-old-serial').value;
     if (newEmpName !== '') {
         const isDup = currentAssetsData.some(r => { const s = r['Board Serial Number'] || r['سيريال لاب توب'] || ''; const e = (r['اسم الموظف'] || '').trim(); return e === newEmpName && s !== currentSerial; });
-        if (isDup && !confirm(`تنبيه ⚠️ الموظف "${newEmpName}" مسجل له جهاز بالفعل!\nهل أنت متأكد أنك تريد إضافة عهدة أخرى؟`)) return; 
+        if (isDup && !confirm(`تنبيه ⚠️ الموظف "${newEmpName}" مسجل له جهاز بالفعل!
+هل أنت متأكد أنك تريد إضافة عهدة أخرى؟`)) return; 
     }
     const btn = document.getElementById('save-asset-btn'); btn.innerHTML = '<span class="loader !w-5 !h-5"></span>'; btn.disabled = true;
     const actionType = currentSerial === '' ? "add_asset" : "update_asset";
-    const payload = { action: actionType, branch: document.getElementById('branch-select').value, old_serial: currentSerial, admin: document.getElementById('display-user-name').innerText, updates: { "Board Serial Number": document.getElementById('a-serial').value, "اسم الموظف": newEmpName, "Computer Name": document.getElementById('a-comp').value, "User Name": document.getElementById('a-user').value, "O.S": document.getElementById('a-os').value, "Model": document.getElementById('a-model').value, "Hardware": document.getElementById('a-hard').value, "Printer": document.getElementById('a-print').value, "O.S. & Programes": document.getElementById('a-prog').value, "Branche \\ Location": document.getElementById('a-loc').value, "pass usb": document.getElementById('a-usb').value, "pass win": document.getElementById('a-win').value, "Phone and serial number": document.getElementById('a-phone').value } };
+    const payload = { action: actionType, branch: document.getElementById('branch-select').value, old_serial: currentSerial, admin: document.getElementById('display-user-name').innerText, updates: { "Board Serial Number": document.getElementById('a-serial').value, "اسم الموظف": newEmpName, "Computer Name": document.getElementById('a-comp').value, "User Name": document.getElementById('a-user').value, "O.S": document.getElementById('a-os').value, "Model": document.getElementById('a-model').value, "Hardware": document.getElementById('a-hard').value, "Printer": document.getElementById('a-print').value, "O.S. & Programes": document.getElementById('a-prog').value, "Branche \ Location": document.getElementById('a-loc').value, "pass usb": document.getElementById('a-usb').value, "pass win": document.getElementById('a-win').value, "Phone and serial number": document.getElementById('a-phone').value } };
     try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); const json = await res.json(); if(json.success) { showToast('تم الحفظ بنجاح!'); closeModal('asset-edit-modal'); loadBranchData(true); } else showToast(json.message, true); } catch(e) { showToast('خطأ بالاتصال', true); } finally { btn.innerHTML = 'حفظ البيانات'; btn.disabled = false; }
 }
 
@@ -683,7 +748,7 @@ function revokeAsset(index) {
     document.getElementById('a-old-serial').value = currentAssetsData[index]['Board Serial Number'] || currentAssetsData[index]['سيريال لاب توب'] || '';
     document.getElementById('a-serial').value = document.getElementById('a-old-serial').value;
     document.getElementById('a-emp').value = ""; 
-    document.getElementById('a-comp').value = currentAssetsData[index]['Computer Name'] || ''; document.getElementById('a-user').value = currentAssetsData[index]['User Name'] || ''; document.getElementById('a-os').value = currentAssetsData[index]['O.S'] || ''; document.getElementById('a-model').value = currentAssetsData[index]['Model'] || ''; document.getElementById('a-hard').value = currentAssetsData[index]['Hardware'] || currentAssetsData[index]['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = currentAssetsData[index]['Printer '] || currentAssetsData[index]['Printer'] || ''; document.getElementById('a-prog').value = currentAssetsData[index]['O.S. & Programes'] || ''; document.getElementById('a-loc').value = currentAssetsData[index]['Branche \\ Location '] || currentAssetsData[index]['Branche \\ Location'] || ''; document.getElementById('a-usb').value = currentAssetsData[index]['pass usb'] || ''; document.getElementById('a-win').value = currentAssetsData[index]['pass win'] || ''; document.getElementById('a-phone').value = currentAssetsData[index]['Phone and serial number'] || '';
+    document.getElementById('a-comp').value = currentAssetsData[index]['Computer Name'] || ''; document.getElementById('a-user').value = currentAssetsData[index]['User Name'] || ''; document.getElementById('a-os').value = currentAssetsData[index]['O.S'] || ''; document.getElementById('a-model').value = currentAssetsData[index]['Model'] || ''; document.getElementById('a-hard').value = currentAssetsData[index]['Hardware'] || currentAssetsData[index]['مواصفات الجهاز'] || ''; document.getElementById('a-print').value = currentAssetsData[index]['Printer '] || currentAssetsData[index]['Printer'] || ''; document.getElementById('a-prog').value = currentAssetsData[index]['O.S. & Programes'] || ''; document.getElementById('a-loc').value = currentAssetsData[index]['Branche \ Location '] || currentAssetsData[index]['Branche \ Location'] || ''; document.getElementById('a-usb').value = currentAssetsData[index]['pass usb'] || ''; document.getElementById('a-win').value = currentAssetsData[index]['pass win'] || ''; document.getElementById('a-phone').value = currentAssetsData[index]['Phone and serial number'] || '';
     saveAssetChanges();
 }
 
@@ -738,7 +803,7 @@ async function loadNetworks(force = false) {
         const keys = Object.keys(data[0] || {});
         const deviceKeyIndex = keys.indexOf("اسم الاجهزه");
         const branchKey = deviceKeyIndex > 1 ? keys[deviceKeyIndex - 1] : (keys.find(k => k === "" || k === "الفرع") || keys[1]);
-        
+
         let lastBranch = '';
         allNetworksData = data.map(r => {
             let currentVal = r[branchKey] !== undefined ? String(r[branchKey]).trim() : '';
@@ -767,7 +832,7 @@ function renderNetworksTable() {
 
         const branch = r.displayBranch || '-';
         const displayBranchHtml = r.isChild ? `<i class="fa-solid fa-turn-up fa-rotate-90 mr-2 text-slate-600"></i><span class="text-slate-500">${branch}</span>` : `<span class="font-bold text-white">${branch}</span>`;
-        
+
         const deviceName = r['اسم الاجهزه'] || '-';
         const phone = r['ارقام التلفون الارضي'] || '-';
         const task = r['المهمه'] || '-';
@@ -829,13 +894,13 @@ function openNetworkForm(idx = -1) {
     } else {
         const r = allNetworksData[idx];
         document.getElementById('network-form-title').innerHTML = '<i class="fa-solid fa-pen text-green-500 ml-2"></i>تعديل بيانات الشبكة/الجهاز';
-        
+
         document.getElementById('n-row-num').value = r['_rowNum'] || '';
-        
+
         const keys = Object.keys(r);
         const deviceKeyIndex = keys.indexOf("اسم الاجهزه");
         const branchColKey = deviceKeyIndex > 1 ? keys[deviceKeyIndex - 1] : (keys.find(k => k === "" || k === "الفرع") || keys[1]);
-        
+
         document.getElementById('n-branch').value = r.displayBranch || '';
         document.getElementById('n-device').value = r['اسم الاجهزه'] || '';
         document.getElementById('n-phone').value = r['ارقام التلفون الارضي'] || '';
