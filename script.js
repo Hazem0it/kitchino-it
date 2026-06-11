@@ -132,51 +132,75 @@ function openSettingsModal() { openModal('settings-modal'); }
 // ==========================================
 // 🚀 EXPORT JSON FROM GOOGLE SHEETS (NEW)
 // ==========================================
+// 🚀 دالة التصدير الشاملة الجديدة (تسحب من الـ 5 فروع وتختم اسم الفرع على كل جهاز)
 async function exportAllData() {
-    if(!confirm('سيتم جلب كل البيانات من Google Sheets وتصديرها كـ JSON.\nهل تريد المتابعة؟')) return;
+    if(!confirm('سيتم الآن سحب بيانات الأجهزة من جميع الشركات الـ 5 (Kitchino, Milark, Zayed, Caventa, Assisto) ودمجها بملف واحد متكامل.\nهل أنت مستعد؟')) return;
 
     const btn = document.getElementById('export-btn');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<span class="loader !w-4 !h-4"></span> جاري التصدير...';
-    btn.disabled = true;
+    if(btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="loader !w-4 !h-4"></span> جاري سحب البيانات...';
+        btn.disabled = true;
+    }
 
     try {
-        showToast('جاري جلب بيانات الأجهزة...');
-        const assetsRes = await fetch(`${API_URL}?type=assets&branch=kitchino`);
-        const assetsData = await assetsRes.json();
+        // مصفوفة بأسماء الشركات كما هي مسجلة في شيت جوجل
+        const branches = ['kitchino', 'milark', 'فرع زايد', 'caventa', 'ASSISTO-TROLLY-Katamya'];
+        let allAssets = [];
 
-        showToast('جاري جلب بيانات التذاكر...');
+        // 1️⃣ سحب بيانات الأجهزة من كل فرع وحقن اسم الشركة بداخلها
+        for (let branch of branches) {
+            showToast(`⏳ جاري سحب أجهزة: ${branch}...`);
+            const assetsRes = await fetch(`${API_URL}?type=assets&branch=${encodeURIComponent(branch)}`);
+            const assetsData = await assetsRes.json();
+            
+            // 🔥 السر هنا: بنضيف اسم الفرع إجبارياً لكل جهاز وهو بيتسحب من جوجل
+            const modifiedData = assetsData.map(item => {
+                return { ...item, "company": branch };
+            });
+            
+            allAssets = allAssets.concat(modifiedData);
+        }
+
+        // 2️⃣ سحب باقي البيانات (التذاكر والشبكات)
+        showToast('⏳ جاري سحب تذاكر الأعطال...');
         const ticketsRes = await fetch(`${API_URL}?type=tickets`);
         const ticketsData = await ticketsRes.json();
 
-        showToast('جاري جلب بيانات الشبكات...');
+        showToast('⏳ جاري سحب بيانات الشبكات...');
         const networksRes = await fetch(`${API_URL}?type=networks`);
         const networksData = await networksRes.json();
 
+        // 3️⃣ تجميع كل البيانات في حزمة واحدة جاهزة للاستيراد المحلي
         const exportPackage = {
             exported_at: new Date().toISOString(),
-            source: 'Kitchino Google Sheets',
-            assets: assetsData,
+            source: 'Kitchino Google Sheets Full Backup',
+            assets: allAssets,
             tickets: ticketsData,
             networks: networksData
         };
 
+        // 4️⃣ تحميل الملف لجهازك
         const blob = new Blob([JSON.stringify(exportPackage, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `kitchino_export_${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `Kitchino_Full_Database_${new Date().toISOString().split('T')[0]}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        
+        showToast('✅ تم استخراج الداتا بنجاح لكل الفروع!');
 
-        showToast('تم تصدير كل البيانات بنجاح! يمكنك الآن استيرادها في النظام المحلي.');
-    } catch(e) {
-        showToast('خطأ أثناء التصدير: ' + e.message, true);
+    } catch(error) {
+        showToast('❌ حدث خطأ أثناء الاتصال بجوجل شيت', true);
+        console.error(error);
     } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
+        if(btn) {
+            btn.innerHTML = 'تصدير شامل';
+            btn.disabled = false;
+        }
     }
 }
 
